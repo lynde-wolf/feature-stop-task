@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Feature Stop Task - Local Test</title>
+  <script src="https://unpkg.com/jspsych@7.3.4"></script>
+  <script src="https://unpkg.com/@jspsych/plugin-instructions@1.1.4"></script>
+  <script src="https://unpkg.com/@jspsych/plugin-html-keyboard-response@1.1.3"></script>
+  <script src="https://unpkg.com/@jspsych/plugin-html-button-response@1.1.3"></script>
+  <script src="https://unpkg.com/@jspsych/plugin-survey-text@1.1.3"></script>
+  <script src="https://unpkg.com/@jspsych/plugin-fullscreen@1.2.1"></script>
+  <script src="https://unpkg.com/@jspsych/plugin-call-function@1.1.3"></script>
+  <link rel="stylesheet" href="https://unpkg.com/jspsych@7.3.4/css/jspsych.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="task-selector" style="font-family: sans-serif; padding: 40px; max-width: 600px; margin: 0 auto;">
+  <h2>Feature Stop Task — local test runner</h2>
+  <form id="selector-form">
+    <label style="display:block; margin: 16px 0 8px;">
+      task_type:
+      <select id="task-type-input">
+        <option value="disjunctive" selected>disjunctive (shape only — ignore color)</option>
+        <option value="conjunctive">conjunctive (shape + color together)</option>
+      </select>
+    </label>
+    <label style="display:block; margin: 16px 0 8px;">
+      group_index:
+      <input type="number" id="group-index-input" value="1" min="1" max="24" style="width: 60px;">
+      <span style="color: #666; font-size: 90%;">(counterbalances index/middle assignment)</span>
+    </label>
+    <button type="submit" style="padding: 8px 16px; margin-top: 12px;">Start</button>
+  </form>
+</div>
+<div id="jspsych-target"></div>
+
+<!-- Poldrack Lab Stop Signal Plugin (local stub for testing) -->
+<script>
+var jsPoldracklabStopSignal = (function (jspsych) {
+  "use strict";
+
+  class StopSignalPlugin {
+    constructor(jsPsych) {
+      this.jsPsych = jsPsych;
+    }
+
+    trial(display_element, trial) {
+      var response = { rt: null, key: null };
+      var responded = false;
+
+      var stimHTML = typeof trial.stimulus === 'function' ? trial.stimulus() : trial.stimulus;
+      var ssType = typeof trial.SS_trial_type === 'function' ? trial.SS_trial_type() : trial.SS_trial_type;
+      var ssd = typeof trial.SSD === 'function' ? trial.SSD() : (trial.SSD || 250);
+      var ssDuration = trial.SS_duration || 500;
+      var ssStimHTML = typeof trial.SS_stimulus === 'function' ? trial.SS_stimulus() : (trial.SS_stimulus || '');
+      var promptHTML = typeof trial.prompt === 'function' ? trial.prompt() : (trial.prompt || '');
+
+      display_element.innerHTML =
+        '<div id="jspsych-stop-signal-stimulus">' + stimHTML + '</div>' +
+        '<div id="jspsych-stop-signal-SS" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:10;">' + ssStimHTML + '</div>' +
+        promptHTML;
+
+      if (trial.stimulus_duration !== null && trial.stimulus_duration !== undefined) {
+        this.jsPsych.pluginAPI.setTimeout(function () {
+          var el = display_element.querySelector('#jspsych-stop-signal-stimulus');
+          if (el) el.style.visibility = 'hidden';
+        }, trial.stimulus_duration);
+      }
+
+      if (ssType === 'stop') {
+        var self = this;
+        this.jsPsych.pluginAPI.setTimeout(function () {
+          var el = display_element.querySelector('#jspsych-stop-signal-SS');
+          if (el) el.style.display = 'block';
+          self.jsPsych.pluginAPI.setTimeout(function () {
+            var el2 = display_element.querySelector('#jspsych-stop-signal-SS');
+            if (el2) el2.style.display = 'none';
+          }, ssDuration);
+        }, ssd);
+      }
+
+      var keyListener = null;
+      if (trial.choices && trial.choices[0] !== 'NO_KEYS') {
+        keyListener = this.jsPsych.pluginAPI.getKeyboardResponse({
+          callback_function: function (info) {
+            if (!responded) {
+              responded = true;
+              response = info;
+            }
+          },
+          valid_responses: trial.choices,
+          rt_method: 'performance',
+          persist: false,
+          allow_held_key: false,
+        });
+      }
+
+      var plugin = this;
+      var endTrial = function () {
+        if (keyListener) plugin.jsPsych.pluginAPI.cancelAllKeyboardResponses();
+
+        var trialData = {
+          rt: response.rt,
+          response: response.key,
+          stimulus: stimHTML,
+          condition: ssType,
+          SS_trial_type: ssType,
+          SSD: ssType === 'stop' ? ssd : null,
+          SS_duration: ssType === 'stop' ? ssDuration : null,
+        };
+
+        display_element.innerHTML = '';
+        plugin.jsPsych.finishTrial(trialData);
+      };
+
+      if (trial.trial_duration !== null && trial.trial_duration !== undefined) {
+        this.jsPsych.pluginAPI.setTimeout(endTrial, trial.trial_duration);
+      }
+    }
+  }
+
+  StopSignalPlugin.info = {
+    name: 'poldracklab-stop-signal',
+    parameters: {
+      stimulus:           { type: jspsych.ParameterType.FUNCTION, default: undefined },
+      SS_stimulus:        { type: jspsych.ParameterType.FUNCTION, default: undefined },
+      SS_trial_type:      { type: jspsych.ParameterType.FUNCTION, default: 'go' },
+      choices:            { type: jspsych.ParameterType.KEYS, default: 'ALL_KEYS' },
+      correct_choice:     { type: jspsych.ParameterType.FUNCTION, default: undefined },
+      stimulus_duration:  { type: jspsych.ParameterType.INT, default: null },
+      trial_duration:     { type: jspsych.ParameterType.INT, default: null },
+      response_ends_trial:{ type: jspsych.ParameterType.BOOL, default: true },
+      SSD:                { type: jspsych.ParameterType.FUNCTION, default: 250 },
+      SS_duration:        { type: jspsych.ParameterType.INT, default: 500 },
+      post_trial_gap:     { type: jspsych.ParameterType.INT, default: 0 },
+      prompt:             { type: jspsych.ParameterType.HTML_STRING, default: null },
+    },
+  };
+
+  return StopSignalPlugin;
+})(jsPsychModule);
+</script>
+
+<!-- Attention Check Plugin (local stub for testing) -->
+<script>
+var jsPsychAttentionCheckRdoc = (function (jspsych) {
+  "use strict";
+
+  class AttentionCheckPlugin {
+    constructor(jsPsych) {
+      this.jsPsych = jsPsych;
+    }
+
+    trial(display_element, trial) {
+      var questionHTML = typeof trial.question === 'function' ? trial.question() : trial.question;
+      var keyAnswer = typeof trial.key_answer === 'function' ? trial.key_answer() : trial.key_answer;
+
+      display_element.innerHTML = '<div class="centerbox">' + questionHTML + '</div>';
+
+      var plugin = this;
+      var keyListener = this.jsPsych.pluginAPI.getKeyboardResponse({
+        callback_function: function (info) {
+          var charCode = info.key.toUpperCase().charCodeAt(0);
+          var correct = charCode === keyAnswer;
+          display_element.innerHTML = '';
+          plugin.jsPsych.finishTrial({
+            rt: info.rt,
+            response: info.key,
+            correct: correct,
+          });
+        },
+        valid_responses: 'ALL_KEYS',
+        rt_method: 'performance',
+        persist: false,
+        allow_held_key: false,
+      });
+
+      if (trial.trial_duration) {
+        this.jsPsych.pluginAPI.setTimeout(function () {
+          plugin.jsPsych.pluginAPI.cancelAllKeyboardResponses();
+          display_element.innerHTML = '';
+          plugin.jsPsych.finishTrial({ rt: null, response: null, correct: false });
+        }, trial.trial_duration);
+      }
+    }
+  }
+
+  AttentionCheckPlugin.info = {
+    name: 'attention-check-rdoc',
+    parameters: {
+      question:            { type: jspsych.ParameterType.FUNCTION, default: undefined },
+      key_answer:          { type: jspsych.ParameterType.FUNCTION, default: undefined },
+      response_ends_trial: { type: jspsych.ParameterType.BOOL, default: true },
+      trial_duration:      { type: jspsych.ParameterType.INT, default: null },
+      timing_post_trial:   { type: jspsych.ParameterType.INT, default: 0 },
+    },
+  };
+
+  return AttentionCheckPlugin;
+})(jsPsychModule);
+</script>
+
+<!-- Read URL params to seed efVars before experiment.js loads -->
+<script>
+(function () {
+  var params = new URLSearchParams(window.location.search);
+  var tt = params.get('task_type');
+  var gi = parseInt(params.get('group_index') || '1', 10);
+  window.efVars = {
+    group_index: isNaN(gi) ? 1 : gi,
+    task_type: tt === 'conjunctive' || tt === 'disjunctive' ? tt : 'disjunctive',
+  };
+  // If task_type/group_index came via URL, skip the selector entirely.
+  window._autostart = params.has('task_type') || params.has('group_index');
+})();
+window.dataSync = function () { console.log('[dataSync] no-op locally'); };
+function addID(id) { return function (data) { data.exp_id = id; }; }
+function getDisplayElement() { return 'jspsych-target'; }
+</script>
+
+<!-- Load experiment (defines variables, functions, init, timeline) -->
+<script src="experiment.js"></script>
+
+<!-- Bootstrap: pick task_type, init jsPsych, run -->
+<script>
+function _runExperiment() {
+  document.getElementById('task-selector').style.display = 'none';
+  var jsPsych = initJsPsych({
+    display_element: 'jspsych-target',
+    on_finish: function () {
+      jsPsych.data.displayData();
+    },
+  });
+  window.jsPsych = jsPsych;
+  feature_stop_task_init();
+  jsPsych.run(feature_stop_task_experiment);
+}
+
+if (window._autostart) {
+  _runExperiment();
+} else {
+  document.getElementById('selector-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var tt = document.getElementById('task-type-input').value;
+    var gi = parseInt(document.getElementById('group-index-input').value, 10) || 1;
+    // Reload with URL params so experiment.js sees the right efVars at load time
+    // (prompt/instruction strings are built once during initial load).
+    var params = new URLSearchParams({ task_type: tt, group_index: String(gi) });
+    window.location.search = '?' + params.toString();
+  });
+}
+</script>
+</body>
+</html>
