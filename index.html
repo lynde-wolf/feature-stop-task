@@ -20,7 +20,7 @@
     <label style="display:block; margin: 16px 0 8px;">
       task_type:
       <select id="task-type-input">
-        <option value="disjunctive" selected>disjunctive (shape only — ignore color)</option>
+        <option value="feature" selected>feature (shape only — ignore color)</option>
         <option value="conjunctive">conjunctive (shape + color together)</option>
       </select>
     </label>
@@ -208,7 +208,7 @@ var jsPsychAttentionCheckRdoc = (function (jspsych) {
   var gi = parseInt(params.get('group_index') || '1', 10);
   window.efVars = {
     group_index: isNaN(gi) ? 1 : gi,
-    task_type: tt === 'conjunctive' || tt === 'disjunctive' ? tt : 'disjunctive',
+    task_type: tt === 'conjunctive' || tt === 'feature' ? tt : 'feature',
   };
   // If task_type/group_index came via URL, skip the selector entirely.
   window._autostart = params.has('task_type') || params.has('group_index');

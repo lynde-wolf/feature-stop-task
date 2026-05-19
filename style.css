@@ -11,6 +11,15 @@ body {
   color: white;
 }
 
+/* Force-center jsPsych content vertically + horizontally in the viewport.
+   Without this, fixation/text sit at the top of the page in the local runner. */
+.jspsych-content-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+}
+
 .fb_box {
   width: 35vw;
   height: 20vh;

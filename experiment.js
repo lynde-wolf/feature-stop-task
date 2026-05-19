@@ -259,7 +259,7 @@ function getKeyMappingForTask(group_index, task_type) {
   }
 
   // Build keyMap for both task types.
-  // Disjunctive: response depends only on shape (color is task-irrelevant).
+  // Feature: response depends only on shape (color is task-irrelevant).
   //   possibleResponses[0] -> shapes[0] (circle); possibleResponses[1] -> shapes[1] (square)
   // Conjunctive: response depends on the shape+color conjunction (XOR-like).
   //   {circle+colors[0], square+colors[1]} -> possibleResponses[0]
@@ -288,9 +288,9 @@ var group_index =
 var task_type =
   typeof window.efVars !== 'undefined' && window.efVars.task_type
     ? window.efVars.task_type
-    : 'disjunctive';
-if (task_type !== 'conjunctive' && task_type !== 'disjunctive') {
-  task_type = 'disjunctive';
+    : 'feature';
+if (task_type !== 'conjunctive' && task_type !== 'feature') {
+  task_type = 'feature';
 }
 
 var colors = ['cyan', 'magenta'];
@@ -403,7 +403,7 @@ var mappingLines = (function () {
       bucket.stims.push(labelFor(shapes[s], colors[c]));
     }
   }
-  // Deduplicate the disjunctive case ("circle" appears twice etc).
+  // Deduplicate the feature case ("circle" appears twice etc).
   for (var b = 0; b < byKey.length; b++) {
     byKey[b].stims = Array.from(new Set(byKey[b].stims));
   }

@@ -5,7 +5,7 @@ Adapted from `experiment_3_task/simple_stop_signal_e3/`. Adds a task-irrelevant
 4 unique stimuli. Between-subjects manipulation of how color enters the
 stop-signal task:
 
-- **disjunctive** (`task_type=disjunctive`) — color is task-irrelevant; key
+- **feature** (`task_type=feature`) — color is task-irrelevant; key
   responses depend only on shape (identical to the original simple stop task).
 - **conjunctive** (`task_type=conjunctive`) — key responses depend on the
   conjunction of color and shape. With two keys, two color+shape pairs map to
@@ -14,7 +14,7 @@ stop-signal task:
 
 Local preview: serve the folder with `python3 -m http.server` and open
 `index.html`. Pick the group from the dropdown, or pass
-`?task_type=conjunctive&group_index=1` in the URL. Counterbalancing of finger
+`?task_type=conjunctive&group_index=1` (or `?task_type=feature&...`) in the URL. Counterbalancing of finger
 assignment uses the existing `group_index` parameter (≤1 → pair-0 = index
 finger; ≥2 → flipped).
 
