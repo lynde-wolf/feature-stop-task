@@ -296,8 +296,8 @@ if (task_type !== 'conjunctive' && task_type !== 'feature') {
   task_type = 'feature';
 }
 
-var colors = ['cyan', 'magenta'];
-var colorHex = { cyan: '#00bcd4', magenta: '#e91e63' };
+var colors = ['blue', 'pink'];
+var colorHex = { blue: '#1976d2', pink: '#e91e63' };
 var color = null;
 
 getKeyMappingForTask(group_index, task_type);
@@ -440,6 +440,76 @@ var promptText = `
 var speedReminder =
   '<p class = block-text>Try to respond as quickly and accurately as possible.</p>';
 
+// Renders a small visual stimulus -> key mapping panel for use in
+// instructions. `size` controls the SVG side length (px).
+var renderMappingPanel = function (size) {
+  size = size || 90;
+  var miniSvg = function (shape, color) {
+    var hex = colorHex[color];
+    if (shape === 'circle') {
+      return (
+        '<svg width="' +
+        size +
+        '" height="' +
+        size +
+        '" viewBox="0 0 160 160"><circle cx="80" cy="80" r="60" fill="' +
+        hex +
+        '"/></svg>'
+      );
+    }
+    return (
+      '<svg width="' +
+      size +
+      '" height="' +
+      size +
+      '" viewBox="0 0 160 160"><rect x="20" y="20" width="120" height="120" rx="4" ry="4" fill="' +
+      hex +
+      '"/></svg>'
+    );
+  };
+
+  var rowHtml = function (bucket) {
+    // List the unique (shape,color) pairs that map to this bucket's key.
+    var pairs = [];
+    for (var s = 0; s < shapes.length; s++) {
+      for (var c = 0; c < colors.length; c++) {
+        if (getResponseForStim(shapes[s], colors[c]) === bucket.resp[1]) {
+          pairs.push([shapes[s], colors[c]]);
+        }
+      }
+    }
+    // In feature mode, color is task-irrelevant, but still SHOW both colored
+    // exemplars side-by-side so the participant sees what the stimuli look like.
+    var stimCells = pairs
+      .map(function (p) {
+        return (
+          '<div style="display:inline-block;margin:0 6px;">' +
+          miniSvg(p[0], p[1]) +
+          '</div>'
+        );
+      })
+      .join('');
+    return (
+      '<div style="display:flex;align-items:center;justify-content:center;gap:18px;margin:10px 0;">' +
+      '<div>' +
+      stimCells +
+      '</div>' +
+      '<div style="font-size:32px;">&rarr;</div>' +
+      '<div style="font-family:monospace;font-size:24px;padding:6px 14px;border:2px solid white;border-radius:6px;">' +
+      bucket.resp[2] +
+      '</div>' +
+      '</div>'
+    );
+  };
+
+  return (
+    '<div style="margin:18px auto;">' +
+    rowHtml(mappingLines[0]) +
+    rowHtml(mappingLines[1]) +
+    '</div>'
+  );
+};
+
 var ruleParagraphs = (function () {
   // Each bucket already lists the stims that map to that finger/key.
   return (
@@ -468,6 +538,7 @@ var pageInstruct = [
         : 'The shape will be one of two colors, but <b>only the shape matters</b>: ignore the color.'
     }</p>
     ${ruleParagraphs}
+    ${renderMappingPanel(90)}
     <p class="block-text">You should respond as quickly and accurately as possible.</p>
   </div>
   `,
