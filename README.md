@@ -39,10 +39,23 @@ For each block in `blockOrder`:
 4. one test block (60 trials, 33% stop)
 5. between-block feedback (or end-of-task message after the final block)
 
+## Repo layout
+
+```
+feature_stop_task/   # experiment dir: config.json + experiment.js + style.css + images/
+index.html           # local-test runner that loads from feature_stop_task/
+README.md
+```
+
+The experiment files live in the `feature_stop_task/` subfolder so that
+[expfactory-deploy](https://github.com/poldracklab/expfactory-deploy) discovers
+the task. `config.json` and `index.html` cannot share a folder, so the
+local-test runner stays at the repo root.
+
 ## Local preview
 
 ```bash
-python3 -m http.server 8786 --directory feature_stop_task
+python3 -m http.server 8786
 ```
 
 Open `http://localhost:8786/`. Defaults to a full 3-block session counterbalanced
