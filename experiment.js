@@ -2,32 +2,34 @@
 /*       Define Helper Functions        */
 /* ************************************ */
 // PARAMETERS FOR DECAYING EXPONENTIAL FUNCTION
-var meanITI = 0.5;
+// var meanITI = 0.5;
 
-function sampleFromDecayingExponential() {
-  // Decay parameter of the exponential distribution λ = 1 / μ
-  var lambdaParam = 1 / meanITI;
-  var minValue = 0;
-  var maxValue = 5;
+// function sampleFromDecayingExponential() {
+//   // Decay parameter of the exponential distribution λ = 1 / μ
+//   var lambdaParam = 1 / meanITI;
+//   var minValue = 0;
+//   var maxValue = 5;
 
-  /**
-   * Sample one value with replacement
-   * from a decaying exponential distribution within a specified range.
-   *
-   * @param {number} lambdaParam
-   * - The decay parameter lambda of the exponential distribution.
-   * @param {number} minValue - The minimum value of the range.
-   * @param {number} maxValue - The maximum value of the range.
-   * @returns {number}
-   * A single value sampled from the decaying
-   * exponential distribution within the specified range.
-   */
-  var sample;
-  do {
-    sample = -Math.log(Math.random()) / lambdaParam;
-  } while (sample < minValue || sample > maxValue);
-  return sample;
-}
+//   /**
+//    * Sample one value with replacement
+//    * from a decaying exponential distribution within a specified range.
+//    *
+//    * @param {number} lambdaParam
+//    * - The decay parameter lambda of the exponential distribution.
+//    * @param {number} minValue - The minimum value of the range.
+//    * @param {number} maxValue - The maximum value of the range.
+//    * @returns {number}
+//    * A single value sampled from the decaying
+//    * exponential distribution within the specified range.
+//    */
+//   var sample;
+//   do {
+//     sample = -Math.log(Math.random()) / lambdaParam;
+//   } while (sample < minValue || sample > maxValue);
+//   return sample;
+// }
+
+var staticITIms = 500; // 0.5 s fixed ITI
 
 function shuffleArray(array) {
   // Create a copy of the original array
@@ -169,10 +171,11 @@ var renderColoredShape = function (shape, color) {
       '"/></svg>'
     );
   }
-  // square (rounded, to match the figure)
+  // square — very slight corner softening (rx=4) to approximate the
+  // anti-aliased edge of the original square.png stimulus.
   return (
     '<svg width="160" height="160" viewBox="0 0 160 160" class="center">' +
-    '<rect x="20" y="20" width="120" height="120" rx="18" ry="18" fill="' +
+    '<rect x="20" y="20" width="120" height="120" rx="4" ry="4" fill="' +
     hex +
     '"/></svg>'
   );
@@ -442,12 +445,12 @@ var ruleParagraphs = (function () {
   return (
     `<p class="block-text">If the shape is ${
       task_type === 'conjunctive' ? '' : 'a '
-    }<b>${mappingLines[0].stims.join('</b> or <b>')}</b>, press your <b>${
+    }<b>${mappingLines[0].stims.join('</b> or <b>')}</b>, press with your <b>${
       mappingLines[0].resp[0]
     }</b>.</p>` +
     `<p class="block-text">If the shape is ${
       task_type === 'conjunctive' ? '' : 'a '
-    }<b>${mappingLines[1].stims.join('</b> or <b>')}</b>, press your <b>${
+    }<b>${mappingLines[1].stims.join('</b> or <b>')}</b>, press with your <b>${
       mappingLines[1].resp[0]
     }</b>.</p>`
   );
@@ -465,20 +468,19 @@ var pageInstruct = [
         : 'The shape will be one of two colors, but <b>only the shape matters</b>: ignore the color.'
     }</p>
     ${ruleParagraphs}
-    <p class="block-text">You should respond as quickly and accurately as possible to each shape.</p>
+    <p class="block-text">You should respond as quickly and accurately as possible.</p>
   </div>
   `,
   `
   <div class="centerbox">
     <p class="block-text">On some trials, a star will appear around the shape, with or shortly after the shape appears.</p>
     <p class="block-text">If you see the star, please try your best to <b>withhold your response</b> on that trial.</p>
-    <p class="block-text">If the star appears and you try your best to withhold your response, you will find that you will be able to stop sometimes, but not always.</p>
     <p class="block-text">Please <b>do not</b> slow down your responses in order to wait for the star. It is equally important to respond quickly on trials without the star as it is to stop on trials with the star.</p>
   </div>
   `,
   `
   <div class="centerbox">
-    <p class="block-text">We'll start with a practice round. During practice, you will receive feedback and a reminder of the rules. These will be taken out for the test, so make sure you understand the instructions before moving on.</p>
+    <p class="block-text">We'll start with a practice round. During practice, you will receive feedback and a reminder of the rules. These will not count towards your performance on the task. Please make sure you understand the instructions before moving on.</p>
     ${speedReminder}
   </div>
   `,
@@ -606,7 +608,7 @@ var feedbackBlock = {
   response_ends_trial: true,
 };
 
-var ITIms = null;
+// var ITIms = null;
 
 // *** ITI *** //
 var ITIBlock = {
@@ -618,25 +620,28 @@ var ITIBlock = {
     const stage = getExpStage();
     return {
       trial_id: `${stage}_ITI`,
-      ITIParams: {
-        min: 0,
-        max: 5,
-        mean: 0.5,
-      },
+      // ITIParams: {
+      //   min: 0,
+      //   max: 5,
+      //   mean: 0.5,
+      // },
       block_num: stage === 'practice' ? practiceCount : testCount,
       exp_stage: stage,
     };
   },
-  trial_duration: function () {
-    ITIms = sampleFromDecayingExponential();
-    return ITIms * 1000;
-  },
+  // trial_duration: function () {
+  //   ITIms = sampleFromDecayingExponential();
+  //   return ITIms * 1000;
+  // },
+  trial_duration: staticITIms,
   prompt: function () {
     return getExpStage() === 'practice' ? promptText : '';
   },
   on_finish: function (data) {
-    data['trial_duration'] = ITIms * 1000;
-    data['stimulus_duration'] = ITIms * 1000;
+    // data['trial_duration'] = ITIms * 1000;
+    // data['stimulus_duration'] = ITIms * 1000;
+    data['trial_duration'] = staticITIms;
+    data['stimulus_duration'] = staticITIms;
   },
 };
 
