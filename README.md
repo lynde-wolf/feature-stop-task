@@ -1,22 +1,53 @@
 # Feature Stop Task
 
-Adapted from `experiment_3_task/simple_stop_signal_e3/`. Adds a task-irrelevant
-**color** dimension (cyan, magenta) to the two shapes (circle, square), yielding
-4 unique stimuli. Between-subjects manipulation of how color enters the
-stop-signal task:
+Adapted from `experiment_3_task/simple_stop_signal_e3/`. Adds a color dimension
+(**blue**, **pink**) to the two shapes (circle, square). Each participant runs
+**three within-subjects blocks**, one per rule condition:
 
-- **feature** (`task_type=feature`) — color is task-irrelevant; key
-  responses depend only on shape (identical to the original simple stop task).
-- **conjunctive** (`task_type=conjunctive`) — key responses depend on the
-  conjunction of color and shape. With two keys, two color+shape pairs map to
-  each key (e.g. `{cyan circle, magenta square}` → comma;
-  `{magenta circle, cyan square}` → period).
+- **plain** — shapes appear in a single neutral color; respond based on shape.
+  Equivalent to the original simple stop task.
+- **feature** — shapes are blue or pink, but color is task-irrelevant; respond
+  based on shape (color is a perceptual distractor).
+- **conjunctive** — shape + color jointly determine the correct key:
+  `{blue circle, pink square}` → one key; `{pink circle, blue square}` → the
+  other (XOR-like mapping).
 
-Local preview: serve the folder with `python3 -m http.server` and open
-`index.html`. Pick the group from the dropdown, or pass
-`?task_type=conjunctive&group_index=1` (or `?task_type=feature&...`) in the URL. Counterbalancing of finger
-assignment uses the existing `group_index` parameter (≤1 → pair-0 = index
-finger; ≥2 → flipped).
+## Counterbalancing (`group_index` 1–12)
+
+`group_index` is the single dial that determines both block order and key
+mapping. With 1–12 it cycles through all 12 unique combos:
+
+- `blockOrderIdx = (group_index − 1) % 6` → one of 6 permutations of
+  `{plain, feature, conjunctive}`.
+- `keyConfigIdx = ⌊(group_index − 1) / 6⌋ % 2` → 2 key configs (which shape /
+  conjunctive pair goes to comma vs. period). Configs are *consistent across
+  conditions*: in config 0, circle goes to comma in plain & feature blocks,
+  and blue-circle → comma in conjunctive too.
+
+Saved per trial: `group_index`, `block_order_idx`, `key_config_idx`,
+`block_condition`, `block_order` (e.g. `"plain_feature_conjunctive"`).
+
+## Timeline per block
+
+For each block in `blockOrder`:
+
+1. setup callback (sets `currentBlockCondition`, rebuilds `keyMap`, prompts, and
+   instructions; resets practice/test counters and SSD)
+2. block-specific instructions (rule + visual stim→key mapping panel +
+   stop-signal explanation + practice intro)
+3. per-block practice (loops until accuracy threshold or `practiceThresh`)
+4. one test block (60 trials, 33% stop)
+5. between-block feedback (or end-of-task message after the final block)
+
+## Local preview
+
+```bash
+python3 -m http.server 8786 --directory feature_stop_task
+```
+
+Open `http://localhost:8786/`. Defaults to a full 3-block session counterbalanced
+by `group_index=1`. To pilot a single block in isolation, pick one from the
+dropdown or pass `?task_type=plain|feature|conjunctive` in the URL.
 
 ---
 

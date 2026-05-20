@@ -1,6 +1,54 @@
 /* ************************************ */
+/*       Feature Stop Task        */
+/* ************************************ */
+
+/* ************************************ */
 /*       Define Helper Functions        */
 /* ************************************ */
+
+/* Roundtable API */
+const script = document.createElement('script');
+script.src = 'https://cdn.roundtable.ai/v1/rt.js';
+script.dataset.siteKey = 'pub-79mS8k3mSPfyoMLcjICe';
+window.addEventListener('load', (event) => {
+  console.log('Roundtable API loaded');
+  document.body.appendChild(script);
+});
+
+/* ---- Covert Bot / Automation Detection ---- */
+var botFingerprint = {};
+
+var botFingerprintTrial = {
+  type: jsPsychCallFunction,
+  func: function () {
+    var f = {};
+    // Automation tool flags
+    f.webdriver = !!navigator.webdriver;
+    f.headless = /HeadlessChrome/i.test(navigator.userAgent || '');
+    f.phantomjs = !!window._phantom || !!window.callPhantom;
+    f.selenium =
+      !!window.__selenium_evaluate ||
+      !!window.__selenium_unwrapped ||
+      !!document.querySelector('[selenium-evaluate]');
+    f.puppeteer = !!window.__puppeteer_evaluation_script__;
+    f.playwright = !!window.__playwright;
+
+    // Browser environment signals
+    f.languagesLen = (navigator.languages || []).length;
+    f.pluginsLen = (navigator.plugins || []).length;
+    f.hardwareConcurrency = navigator.hardwareConcurrency || 0;
+    f.platform = navigator.platform || '';
+    f.hasTouchSupport = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
+    // Composite flag: any automation indicator detected
+    f.anyAutomationFlag =
+      f.webdriver || f.headless || f.phantomjs || f.selenium || f.puppeteer || f.playwright;
+
+    botFingerprint = f;
+    jsPsych.data.addProperties({ bot_fingerprint: JSON.stringify(f) });
+  },
+};
+
 // PARAMETERS FOR DECAYING EXPONENTIAL FUNCTION
 // var meanITI = 0.5;
 
@@ -138,18 +186,24 @@ const getFeedback =
     ${feedbackText}
     </font></p></div></div>`;
 
-var createTrialTypes = function (numTrialsPerBlock) {
+var createTrialTypes = function (numTrialsPerBlock, blockCondition) {
+  // Plain blocks use a single neutral-color stimulus; feature & conjunctive
+  // blocks span both colors.
+  var stimColors =
+    blockCondition === 'plain' ? [neutralColorKey] : colors;
+
   var uniqueCombos =
-    stopSignalsConditions.length * shapes.length * colors.length;
+    stopSignalsConditions.length * shapes.length * stimColors.length;
 
   var stims = [];
   for (var x = 0; x < stopSignalsConditions.length; x++) {
     for (var j = 0; j < shapes.length; j++) {
-      for (var c = 0; c < colors.length; c++) {
+      for (var c = 0; c < stimColors.length; c++) {
         stim = {
           stim: shapes[j],
-          color: colors[c],
-          correct_response: getResponseForStim(shapes[j], colors[c]),
+          color: stimColors[c],
+          block_condition: blockCondition,
+          correct_response: getResponseForStim(shapes[j], stimColors[c]),
           condition: stopSignalsConditions[x],
         };
         stims.push(stim);
@@ -162,7 +216,7 @@ var createTrialTypes = function (numTrialsPerBlock) {
 };
 
 var renderColoredShape = function (shape, color) {
-  var hex = colorHex[color];
+  var hex = colorHex[color] || colorHex.neutral;
   if (shape === 'circle') {
     return (
       '<svg width="160" height="160" viewBox="0 0 160 160" class="center">' +
@@ -200,6 +254,7 @@ var getStim = function () {
     data: {
       stim: shape,
       color: color,
+      block_condition: stim.block_condition || currentBlockCondition,
       condition: condition,
       correct_response: condition === 'go' ? correct_response : null,
     },
@@ -223,7 +278,10 @@ var appendData = function (data) {
 
   data.stim = stimData.stim;
   data.color = stimData.color;
-  data.task_type = task_type;
+  data.block_condition = stimData.block_condition;
+  data.group_index = group_index;
+  data.block_order_idx = blockOrderIdx;
+  data.key_config_idx = keyConfigIdx;
   data.correct_response = correct_response;
   data.current_trial = currentTrial;
   data.condition = stimData.condition;
@@ -247,37 +305,60 @@ var appendData = function (data) {
 const fixationDuration = 500;
 
 var possibleResponses;
-// keyMap[shape][color] -> key character (only used for conjunctive)
+// keyMap[shape][color] -> key character.
+// Rebuilt per block via getKeyMappingForTask(keyConfigIdx, blockCondition).
 var keyMap = {};
 
-function getKeyMappingForTask(group_index, task_type) {
-  // group_index counterbalances index/middle assignment
+// All 3 within-subjects block conditions:
+//   - plain:       single neutral-color shapes; shape -> key
+//   - feature:     blue/pink shapes, color task-irrelevant; shape -> key
+//   - conjunctive: blue/pink shapes, color task-relevant; (shape,color) -> key
+var blockConditions = ['plain', 'feature', 'conjunctive'];
+
+// 6 permutations of the 3 conditions (full block-order counterbalancing).
+var taskOrders = [
+  ['plain', 'feature', 'conjunctive'],
+  ['plain', 'conjunctive', 'feature'],
+  ['feature', 'plain', 'conjunctive'],
+  ['feature', 'conjunctive', 'plain'],
+  ['conjunctive', 'plain', 'feature'],
+  ['conjunctive', 'feature', 'plain'],
+];
+
+function getKeyMappingForTask(keyConfigIdx, blockCondition) {
+  // keyConfigIdx (0 or 1) counterbalances finger assignment.
+  //   keyConfig 0: possibleResponses[0] = index (comma), [1] = middle (period)
+  //   keyConfig 1: flipped
   var indexFinger = ['index finger', ',', 'comma key (,)'];
   var middleFinger = ['middle finger', '.', 'period key (.)'];
 
-  if (group_index <= 1) {
+  if (keyConfigIdx === 0) {
     possibleResponses = [indexFinger, middleFinger];
   } else {
     possibleResponses = [middleFinger, indexFinger];
   }
 
-  // Build keyMap for both task types.
-  // Feature: response depends only on shape (color is task-irrelevant).
-  //   possibleResponses[0] -> shapes[0] (circle); possibleResponses[1] -> shapes[1] (square)
-  // Conjunctive: response depends on the shape+color conjunction (XOR-like).
+  // Build keyMap for the current block condition.
+  // Conjunctive XOR-like mapping:
   //   {circle+colors[0], square+colors[1]} -> possibleResponses[0]
   //   {circle+colors[1], square+colors[0]} -> possibleResponses[1]
+  // Feature: shape determines key; both colors of a shape share a key.
+  // Plain: only the neutral color exists; shape determines key.
   keyMap = { circle: {}, square: {} };
-  if (task_type === 'conjunctive') {
+  if (blockCondition === 'conjunctive') {
     keyMap.circle[colors[0]] = possibleResponses[0][1];
     keyMap.square[colors[1]] = possibleResponses[0][1];
     keyMap.circle[colors[1]] = possibleResponses[1][1];
     keyMap.square[colors[0]] = possibleResponses[1][1];
-  } else {
+  } else if (blockCondition === 'feature') {
     keyMap.circle[colors[0]] = possibleResponses[0][1];
     keyMap.circle[colors[1]] = possibleResponses[0][1];
     keyMap.square[colors[0]] = possibleResponses[1][1];
     keyMap.square[colors[1]] = possibleResponses[1][1];
+  } else {
+    // plain: only the neutral color exists
+    keyMap.circle[neutralColorKey] = possibleResponses[0][1];
+    keyMap.square[neutralColorKey] = possibleResponses[1][1];
   }
 }
 
@@ -285,24 +366,46 @@ var getResponseForStim = function (shape, color) {
   return keyMap[shape][color];
 };
 
-var group_index =
-  typeof window.efVars !== 'undefined' ? window.efVars.group_index : 1;
+var group_index = (function () {
+  var gi = typeof window.efVars !== 'undefined' ? window.efVars.group_index : 1;
+  return Number.isFinite(gi) ? gi : 1;
+})();
 
-var task_type =
+// Counterbalance: group_index 1..12 cycles through all 12 unique combos
+// (6 block orders x 2 key configs).
+var blockOrderIdx = ((group_index - 1) % 6 + 6) % 6;
+var keyConfigIdx = Math.floor((group_index - 1) / 6) % 2;
+if (keyConfigIdx < 0) keyConfigIdx += 2;
+var blockOrder = taskOrders[blockOrderIdx];
+
+// Optional: allow URL/efVars to force a single block condition (for piloting).
+var forcedBlockCondition =
   typeof window.efVars !== 'undefined' && window.efVars.task_type
     ? window.efVars.task_type
-    : 'feature';
-if (task_type !== 'conjunctive' && task_type !== 'feature') {
-  task_type = 'feature';
+    : null;
+if (
+  forcedBlockCondition &&
+  blockConditions.indexOf(forcedBlockCondition) !== -1
+) {
+  blockOrder = [forcedBlockCondition];
 }
 
 var colors = ['blue', 'pink'];
-var colorHex = { blue: '#1976d2', pink: '#e91e63' };
+var colorHex = { blue: '#1976d2', pink: '#e91e63', neutral: '#e8e8e8' };
+var neutralColorKey = 'neutral';
 var color = null;
 
-getKeyMappingForTask(group_index, task_type);
+// currentBlockCondition is mutated by setupBlock() before each block timeline.
+// Initialised to the first block so module-level prompt strings have something
+// sensible to render against during script load.
+var currentBlockCondition = blockOrder[0];
 
-const choices = [possibleResponses[0][1], possibleResponses[1][1]];
+getKeyMappingForTask(keyConfigIdx, currentBlockCondition);
+
+const choices = [
+  possibleResponses[0][1],
+  possibleResponses[1][1],
+];
 
 var endText = `
   <div class="centerbox">
@@ -331,9 +434,18 @@ var sumInstructTime = 0; // ms
 var instructTimeThresh = 5; // /in seconds
 var runAttentionChecks = true;
 
-var practiceLen = 12; // must be divisible by shapes.length * colors.length * stopSignalsConditions.length
-var numTrialsPerBlock = 60; // must be divisible by shapes.length * colors.length * stopSignalsConditions.length
-var numTestBlocks = 3;
+// practiceLen: divisible by 6 (plain: 2 shapes x 3 stop conds) and 12 (feature/conjunctive: 4 stims x 3 stop conds)
+var practiceLen = 12;
+// numTrialsPerBlock: same constraint
+var numTrialsPerBlock = 60;
+// numTestBlocks runs of testNode PER block condition. We loop the block
+// condition externally (3 conditions x 1 test block each = 3 test blocks total).
+var numTestBlocks = 1;
+// Session-level counter tracking how many block conditions have completed.
+var sessionBlockIdx = 0;
+// numSessionBlocks set to blockOrder.length in feature_stop_task_init,
+// since blockOrder may be a single-element override via efVars.task_type.
+var numSessionBlocks = blockConditions.length;
 
 var practiceThresh = 3; // max number of times to repeat practice
 var accuracyThresh = 0.8;
@@ -386,56 +498,78 @@ var images = [pathSource + 'stopSignal' + '.png'];
 // Shape stimuli are rendered as inline SVG (see renderColoredShape),
 // so only the stop-signal star needs preloading.
 
+// Per-block label for a (shape,color) stim.
+//   plain:       just the shape name ("circle" / "square")
+//   feature:     shape name (color shown but ignored by the rule)
+//   conjunctive: "blue circle", "pink square", etc.
 var labelFor = function (shape, color) {
-  return task_type === 'conjunctive' ? color + ' ' + shape : shape;
+  if (currentBlockCondition === 'conjunctive') return color + ' ' + shape;
+  return shape;
 };
 
-var mappingLines = (function () {
-  // Group stim labels by the key they map to, in the order
-  // possibleResponses[0] then possibleResponses[1].
-  var lines = [['index finger', ',', 'comma key (,)'], possibleResponses[1]]
-    .slice(0, 0); // placeholder so eslint is happy
+// mappingLines / promptText / promptTextList / ruleParagraphs are rebuilt
+// per block via buildPromptsForBlock() so the wording reflects the current
+// rule set.
+var mappingLines = [];
+var promptTextList = '';
+var promptText = '';
+var ruleParagraphs = '';
+
+function buildPromptsForBlock(blockCondition) {
+  currentBlockCondition = blockCondition;
+  var stimColors =
+    blockCondition === 'plain' ? [neutralColorKey] : colors;
+
+  // Group stim labels by the key they map to.
   var byKey = [
     { resp: possibleResponses[0], stims: [] },
     { resp: possibleResponses[1], stims: [] },
   ];
   for (var s = 0; s < shapes.length; s++) {
-    for (var c = 0; c < colors.length; c++) {
-      var key = getResponseForStim(shapes[s], colors[c]);
+    for (var c = 0; c < stimColors.length; c++) {
+      var key = getResponseForStim(shapes[s], stimColors[c]);
       var bucket = byKey[0].resp[1] === key ? byKey[0] : byKey[1];
-      bucket.stims.push(labelFor(shapes[s], colors[c]));
+      bucket.stims.push(labelFor(shapes[s], stimColors[c]));
     }
   }
-  // Deduplicate the feature case ("circle" appears twice etc).
+  // Deduplicate the feature/plain case ("circle" appears twice etc).
   for (var b = 0; b < byKey.length; b++) {
     byKey[b].stims = Array.from(new Set(byKey[b].stims));
   }
-  return byKey;
-})();
+  mappingLines = byKey;
 
-var promptTextList = `
-  <ul style="text-align:left;">
-    <li>${mappingLines[0].stims.join(' or ')}: ${
-  mappingLines[0].resp[2]
-}</li>
-    <li>${mappingLines[1].stims.join(' or ')}: ${
-  mappingLines[1].resp[2]
-}</li>
-    <li>Do not respond if a star appears.</li>
-  </ul>
-`;
+  promptTextList =
+    '<ul style="text-align:left;">' +
+    '<li>' + mappingLines[0].stims.join(' or ') + ': ' +
+      mappingLines[0].resp[2] + '</li>' +
+    '<li>' + mappingLines[1].stims.join(' or ') + ': ' +
+      mappingLines[1].resp[2] + '</li>' +
+    '<li>Do not respond if a star appears.</li>' +
+    '</ul>';
 
-var promptText = `
-  <div class="prompt_box">
-    <p class="center-block-text" style="font-size:16px; line-height:80%;">${
-      mappingLines[0].stims.join(' or ')
-    }: ${mappingLines[0].resp[2]}</p>
-    <p class="center-block-text" style="font-size:16px; line-height:80%;">${
-      mappingLines[1].stims.join(' or ')
-    }: ${mappingLines[1].resp[2]}</p>
-    <p class="center-block-text" style="font-size:16px; line-height:80%;">Do not respond if a star appears.</p>
-  </div>
-`;
+  promptText =
+    '<div class="prompt_box">' +
+    '<p class="center-block-text" style="font-size:16px; line-height:80%;">' +
+      mappingLines[0].stims.join(' or ') + ': ' +
+      mappingLines[0].resp[2] + '</p>' +
+    '<p class="center-block-text" style="font-size:16px; line-height:80%;">' +
+      mappingLines[1].stims.join(' or ') + ': ' +
+      mappingLines[1].resp[2] + '</p>' +
+    '<p class="center-block-text" style="font-size:16px; line-height:80%;">Do not respond if a star appears.</p>' +
+    '</div>';
+
+  var article = blockCondition === 'conjunctive' ? '' : 'a ';
+  ruleParagraphs =
+    '<p class="block-text">If the shape is ' + article + '<b>' +
+      mappingLines[0].stims.join('</b> or <b>') +
+      '</b>, press with your <b>' + mappingLines[0].resp[0] + '</b>.</p>' +
+    '<p class="block-text">If the shape is ' + article + '<b>' +
+      mappingLines[1].stims.join('</b> or <b>') +
+      '</b>, press with your <b>' + mappingLines[1].resp[0] + '</b>.</p>';
+}
+
+// Initial build so module-level pageInstruct etc. have non-empty strings.
+buildPromptsForBlock(currentBlockCondition);
 
 var speedReminder =
   '<p class = block-text>Try to respond as quickly and accurately as possible.</p>';
@@ -468,13 +602,17 @@ var renderMappingPanel = function (size) {
     );
   };
 
+  var stimColors =
+    currentBlockCondition === 'plain' ? [neutralColorKey] : colors;
   var rowHtml = function (bucket) {
     // List the unique (shape,color) pairs that map to this bucket's key.
     var pairs = [];
     for (var s = 0; s < shapes.length; s++) {
-      for (var c = 0; c < colors.length; c++) {
-        if (getResponseForStim(shapes[s], colors[c]) === bucket.resp[1]) {
-          pairs.push([shapes[s], colors[c]]);
+      for (var c = 0; c < stimColors.length; c++) {
+        if (
+          getResponseForStim(shapes[s], stimColors[c]) === bucket.resp[1]
+        ) {
+          pairs.push([shapes[s], stimColors[c]]);
         }
       }
     }
@@ -510,52 +648,86 @@ var renderMappingPanel = function (size) {
   );
 };
 
-var ruleParagraphs = (function () {
-  // Each bucket already lists the stims that map to that finger/key.
-  return (
-    `<p class="block-text">If the shape is ${
-      task_type === 'conjunctive' ? '' : 'a '
-    }<b>${mappingLines[0].stims.join('</b> or <b>')}</b>, press with your <b>${
-      mappingLines[0].resp[0]
-    }</b>.</p>` +
-    `<p class="block-text">If the shape is ${
-      task_type === 'conjunctive' ? '' : 'a '
-    }<b>${mappingLines[1].stims.join('</b> or <b>')}</b>, press with your <b>${
-      mappingLines[1].resp[0]
-    }</b>.</p>`
-  );
-})();
+// Block-specific instructions. Rebuilt by setupBlock() before each block;
+// instructionsBlock holds the same array reference and reads contents at
+// trial start, so in-place mutation refreshes the displayed pages.
+var pageInstruct = [];
 
-var pageInstruct = [
-  `
-  <div class="centerbox">
-    <p class="block-text">Place your <b>index finger</b> on the <b>comma key (,)</b> and your <b>middle finger</b> on the <b>period key (.)</b></p>
-    <p class="block-text">During this task, on each trial you will see ${
-      task_type === 'conjunctive' ? 'a colored shape' : 'shapes'
-    } appear on the screen one at a time. ${
-      task_type === 'conjunctive'
-        ? 'Both the <b>color</b> and the <b>shape</b> determine the correct response.'
-        : 'The shape will be one of two colors, but <b>only the shape matters</b>: ignore the color.'
-    }</p>
-    ${ruleParagraphs}
-    ${renderMappingPanel(90)}
-    <p class="block-text">You should respond as quickly and accurately as possible.</p>
-  </div>
-  `,
-  `
-  <div class="centerbox">
-    <p class="block-text">On some trials, a star will appear around the shape, with or shortly after the shape appears.</p>
-    <p class="block-text">If you see the star, please try your best to <b>withhold your response</b> on that trial.</p>
-    <p class="block-text">Please <b>do not</b> slow down your responses in order to wait for the star. It is equally important to respond quickly on trials without the star as it is to stop on trials with the star.</p>
-  </div>
-  `,
-  `
-  <div class="centerbox">
-    <p class="block-text">We'll start with a practice round. During practice, you will receive feedback and a reminder of the rules. These will not count towards your performance on the task. Please make sure you understand the instructions before moving on.</p>
-    ${speedReminder}
-  </div>
-  `,
-];
+// Per-block intro copy (varies by condition).
+function buildPageInstruct(blockCondition, blockIdx, totalBlocks) {
+  var blockHeading =
+    '<p class="block-text"><b>Block ' + (blockIdx + 1) + ' of ' +
+    totalBlocks + '</b></p>';
+
+  var ruleDescription;
+  if (blockCondition === 'plain') {
+    ruleDescription =
+      'In this block, the shape will appear in a single neutral color. ' +
+      'Respond based on the <b>shape</b>.';
+  } else if (blockCondition === 'feature') {
+    ruleDescription =
+      'In this block, the shape will appear in one of two colors. ' +
+      '<b>Only the shape matters</b>: ignore the color.';
+  } else {
+    ruleDescription =
+      'In this block, the shape will appear in one of two colors. ' +
+      'Both the <b>color</b> and the <b>shape</b> determine the correct response.';
+  }
+
+  var pages = [
+    '<div class="centerbox">' +
+      blockHeading +
+      '<p class="block-text">Place your <b>index finger</b> on the <b>comma key (,)</b> and your <b>middle finger</b> on the <b>period key (.)</b></p>' +
+      '<p class="block-text">' + ruleDescription + '</p>' +
+      ruleParagraphs +
+      renderMappingPanel(90) +
+      '<p class="block-text">You should respond as quickly and accurately as possible.</p>' +
+      '</div>',
+    '<div class="centerbox">' +
+      '<p class="block-text">On some trials, a star will appear around the shape, with or shortly after the shape appears.</p>' +
+      '<p class="block-text">If you see the star, please try your best to <b>withhold your response</b> on that trial.</p>' +
+      '<p class="block-text">Please <b>do not</b> slow down your responses in order to wait for the star. It is equally important to respond quickly on trials without the star as it is to stop on trials with the star.</p>' +
+      '</div>',
+    '<div class="centerbox">' +
+      '<p class="block-text">We\'ll start with a short practice round for this block. During practice, you will receive feedback and a reminder of the rules. These will not count towards your performance on the task. Please make sure you understand the instructions before moving on.</p>' +
+      speedReminder +
+      '</div>',
+  ];
+
+  // Mutate pageInstruct in place so the instructionsBlock's captured
+  // reference picks up the new content.
+  pageInstruct.length = 0;
+  for (var i = 0; i < pages.length; i++) pageInstruct.push(pages[i]);
+}
+
+// setupBlock is called once before each block timeline. It updates all
+// per-block globals so the existing practice/test nodes render the right
+// stimuli, key mappings, and prompts for the current block condition.
+function setupBlock(blockCondition, blockIdx, totalBlocks) {
+  currentBlockCondition = blockCondition;
+  getKeyMappingForTask(keyConfigIdx, blockCondition);
+  buildPromptsForBlock(blockCondition);
+  buildPageInstruct(blockCondition, blockIdx, totalBlocks);
+
+  // Reset per-block state so practiceNode / testNode start fresh.
+  practiceCount = 0;
+  testCount = 0;
+  currentTrial = 0;
+  SSD = 250;
+  expStage = 'practice';
+  sumInstructTime = 0;
+
+  // Pre-fill practice stims; testNode reseeds stims at the start of its
+  // first iteration via its loop_function (after practice finishes).
+  stims = createTrialTypes(practiceLen, blockCondition);
+
+  // Reset the feedbackText shown by feedbackBlock at the start of practice
+  // and test iterations.
+  feedbackText =
+    '<div class="centerbox"><p class="center-block-text">' +
+    'Press <i>enter</i> to begin practice for block ' + (blockIdx + 1) +
+    ' of ' + totalBlocks + '.</p></div>';
+}
 
 /* ************************************ */
 /*        Set up jsPsych blocks         */
@@ -656,7 +828,7 @@ var practiceFixation = {
   },
   stimulus_duration: 500, // 500
   trial_duration: 500, // 500
-  prompt: promptText,
+  prompt: function () { return promptText; },
   on_finish: (data) => (data['block_num'] = practiceCount),
 };
 
@@ -744,7 +916,7 @@ for (i = 0; i < practiceLen; i++) {
     on_finish: function (data) {
       appendData(data);
     },
-    prompt: promptText,
+    prompt: function () { return promptText; },
   };
 
   var practiceFeedbackBlock = {
@@ -796,7 +968,7 @@ for (i = 0; i < practiceLen; i++) {
     stimulus_duration: 500, // 500
     trial_duration: 500, // 500
     response_ends_trial: false,
-    prompt: promptText,
+    prompt: function () { return promptText; },
   };
 
   practiceTrials.push(
@@ -864,7 +1036,7 @@ var practiceNode = {
       </div>`;
 
       expStage = 'test';
-      stims = createTrialTypes(numTrialsPerBlock);
+      stims = createTrialTypes(numTrialsPerBlock, currentBlockCondition);
       return false;
     } else {
       feedbackText =
@@ -902,7 +1074,7 @@ var practiceNode = {
         `<p class="block-text">We are now going to repeat the practice round.</p>` +
         `<p class="block-text">Press <i>enter</i> to begin.</p></div>`;
 
-      stims = createTrialTypes(practiceLen);
+      stims = createTrialTypes(practiceLen, currentBlockCondition);
       return true;
     }
   },
@@ -984,10 +1156,25 @@ var testNode = {
     currentAttentionCheckData = attentionCheckData.shift(); // Shift the first object from the array
 
     if (testCount == numTestBlocks) {
-      feedbackText = `<div class=centerbox>
-        <p class=block-text>Done with this task.</p>
-        <p class=centerbox>Press <i>enter</i> to continue.</p>
-        </div>`;
+      // Each testNode invocation runs one block condition. The session
+      // wraps a counter `sessionBlockIdx` (1-indexed within the loop body
+      // here, since this fires after block completion).
+      var blocksDone = sessionBlockIdx + 1;
+      if (blocksDone >= numSessionBlocks) {
+        feedbackText = `<div class=centerbox>
+          <p class=block-text>Done with this task.</p>
+          <p class=centerbox>Press <i>enter</i> to continue.</p>
+          </div>`;
+      } else {
+        feedbackText =
+          '<div class="centerbox">' +
+          '<p class="block-text">You have completed block ' + blocksDone +
+            ' of ' + numSessionBlocks + '.</p>' +
+          '<p class="block-text">The next block has a <b>different rule</b>; ' +
+            'you\'ll see new instructions and a short practice round before it starts.</p>' +
+          '<p class="block-text">Press <i>enter</i> to continue.</p>' +
+          '</div>';
+      }
 
       return false;
     } else {
@@ -1027,12 +1214,12 @@ var testNode = {
       feedbackText +=
         '<p class=block-text>Press <i>enter</i> to continue.</p>' + '</div>';
 
-      stims = createTrialTypes(numTrialsPerBlock);
+      stims = createTrialTypes(numTrialsPerBlock, currentBlockCondition);
       return true;
     }
   },
   on_timeline_finish: function () {
-    window.dataSync();
+    if (typeof window.dataSync === 'function') window.dataSync();
   },
 };
 
@@ -1086,11 +1273,48 @@ var endBlock = {
 var feature_stop_task_experiment = [];
 var feature_stop_task_init = () => {
   jsPsych.pluginAPI.preloadImages(images);
-  stims = createTrialTypes(practiceLen);
+
+  // blockOrder may be overridden to a single condition by ?task_type=...
+  // (useful for piloting). Update numSessionBlocks accordingly.
+  numSessionBlocks = blockOrder.length;
+
+  // Initial seed; will be overwritten by setupBlock() before each block.
+  stims = createTrialTypes(practiceLen, blockOrder[0]);
+
+  // Persist counterbalancing info on every saved trial.
+  jsPsych.data.addProperties({
+    group_index: group_index,
+    block_order_idx: blockOrderIdx,
+    key_config_idx: keyConfigIdx,
+    block_order: blockOrder.join('_'),
+  });
+
   feature_stop_task_experiment.push(fullscreen);
-  feature_stop_task_experiment.push(instructionNode);
-  feature_stop_task_experiment.push(practiceNode);
-  feature_stop_task_experiment.push(testNode);
+
+  for (var bi = 0; bi < blockOrder.length; bi++) {
+    (function (idx) {
+      // Per-block setup: rebuild keyMap, prompts, pageInstruct, and reset
+      // counters before the block's instructions/practice/test run.
+      feature_stop_task_experiment.push({
+        type: jsPsychCallFunction,
+        func: function () {
+          sessionBlockIdx = idx;
+          setupBlock(blockOrder[idx], idx, numSessionBlocks);
+        },
+      });
+      // Block-specific instructions (mutated pageInstruct content).
+      feature_stop_task_experiment.push(instructionNode);
+      // Per-block practice (loops on its own until accuracy threshold).
+      feature_stop_task_experiment.push(practiceNode);
+      // One test block under this block condition.
+      feature_stop_task_experiment.push(testNode);
+      // After testNode's loop terminates, its loop_function has set
+      // feedbackText to either the "between blocks" or the "done with task"
+      // message. Display it before moving to the next block setup.
+      feature_stop_task_experiment.push(feedbackBlock);
+    })(bi);
+  }
+
   feature_stop_task_experiment.push(postTaskBlock);
   feature_stop_task_experiment.push(endBlock);
   feature_stop_task_experiment.push(exitFullscreen);

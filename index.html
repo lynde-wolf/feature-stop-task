@@ -18,16 +18,18 @@
   <h2>Feature Stop Task — local test runner</h2>
   <form id="selector-form">
     <label style="display:block; margin: 16px 0 8px;">
-      task_type:
+      block to run:
       <select id="task-type-input">
-        <option value="feature" selected>feature (shape only — ignore color)</option>
-        <option value="conjunctive">conjunctive (shape + color together)</option>
+        <option value="" selected>all 3 blocks (counterbalanced by group_index)</option>
+        <option value="plain">plain only (no color)</option>
+        <option value="feature">feature only (color irrelevant)</option>
+        <option value="conjunctive">conjunctive only (shape + color)</option>
       </select>
     </label>
     <label style="display:block; margin: 16px 0 8px;">
       group_index:
-      <input type="number" id="group-index-input" value="1" min="1" max="24" style="width: 60px;">
-      <span style="color: #666; font-size: 90%;">(counterbalances index/middle assignment)</span>
+      <input type="number" id="group-index-input" value="1" min="1" max="12" style="width: 60px;">
+      <span style="color: #666; font-size: 90%;">(1–12: 6 block orders × 2 key configs)</span>
     </label>
     <button type="submit" style="padding: 8px 16px; margin-top: 12px;">Start</button>
   </form>
@@ -206,10 +208,13 @@ var jsPsychAttentionCheckRdoc = (function (jspsych) {
   var params = new URLSearchParams(window.location.search);
   var tt = params.get('task_type');
   var gi = parseInt(params.get('group_index') || '1', 10);
-  window.efVars = {
-    group_index: isNaN(gi) ? 1 : gi,
-    task_type: tt === 'conjunctive' || tt === 'feature' ? tt : 'feature',
-  };
+  window.efVars = { group_index: isNaN(gi) ? 1 : gi };
+  // task_type is OPTIONAL — only set if explicitly requested via URL,
+  // in which case the experiment runs only that single block (for piloting).
+  // Default (no task_type) = full 3-block counterbalanced session.
+  if (tt === 'conjunctive' || tt === 'feature' || tt === 'plain') {
+    window.efVars.task_type = tt;
+  }
   // If task_type/group_index came via URL, skip the selector entirely.
   window._autostart = params.has('task_type') || params.has('group_index');
 })();
@@ -225,15 +230,23 @@ function getDisplayElement() { return 'jspsych-target'; }
 <script>
 function _runExperiment() {
   document.getElementById('task-selector').style.display = 'none';
-  var jsPsych = initJsPsych({
+  var jsPsychInstance = initJsPsych({
     display_element: 'jspsych-target',
     on_finish: function () {
-      jsPsych.data.displayData();
+      jsPsychInstance.data.displayData();
     },
   });
-  window.jsPsych = jsPsych;
+  // jspsych@7 installs a non-writable `jsPsych` global that throws on access
+  // (to encourage migration off the v6 global pattern). Force-override it so
+  // experiment.js code that references `jsPsych.pluginAPI` etc. resolves to
+  // our instance instead of throwing.
+  Object.defineProperty(window, 'jsPsych', {
+    value: jsPsychInstance,
+    writable: true,
+    configurable: true,
+  });
   feature_stop_task_init();
-  jsPsych.run(feature_stop_task_experiment);
+  jsPsychInstance.run(feature_stop_task_experiment);
 }
 
 if (window._autostart) {
@@ -243,9 +256,9 @@ if (window._autostart) {
     e.preventDefault();
     var tt = document.getElementById('task-type-input').value;
     var gi = parseInt(document.getElementById('group-index-input').value, 10) || 1;
-    // Reload with URL params so experiment.js sees the right efVars at load time
-    // (prompt/instruction strings are built once during initial load).
-    var params = new URLSearchParams({ task_type: tt, group_index: String(gi) });
+    // Reload with URL params so experiment.js sees the right efVars at load time.
+    var params = new URLSearchParams({ group_index: String(gi) });
+    if (tt) params.set('task_type', tt);
     window.location.search = '?' + params.toString();
   });
 }
