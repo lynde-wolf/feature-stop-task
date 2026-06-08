@@ -215,28 +215,43 @@ var createTrialTypes = function (numTrialsPerBlock, blockCondition) {
   return stims;
 };
 
-var renderColoredShape = function (shape, color) {
-  var hex = colorHex[color] || colorHex.neutral;
+// Geometry shared by renderColoredShape and miniSvg. Returns the inner SVG
+// element string for a given shape, sized to a 160x160 viewBox.
+var shapeInnerSvg = function (shape, hex) {
   if (shape === 'circle') {
+    return '<circle cx="80" cy="80" r="60" fill="' + hex + '"/>';
+  }
+  if (shape === 'diamond') {
+    // Square rotated 45deg, same bounding box as the square stimulus.
+    return '<polygon points="80,20 140,80 80,140 20,80" fill="' + hex + '"/>';
+  }
+  if (shape === 'hexagon') {
+    // Regular hexagon, flat-top, circumradius 60 (matches circle).
     return (
-      '<svg width="160" height="160" viewBox="0 0 160 160" class="center">' +
-      '<circle cx="80" cy="80" r="60" fill="' +
+      '<polygon points="50,28 110,28 140,80 110,132 50,132 20,80" fill="' +
       hex +
-      '"/></svg>'
+      '"/>'
     );
   }
-  // square — very slight corner softening (rx=4) to approximate the
-  // anti-aliased edge of the original square.png stimulus.
+  // square — slight corner softening (rx=4).
   return (
-    '<svg width="160" height="160" viewBox="0 0 160 160" class="center">' +
     '<rect x="20" y="20" width="120" height="120" rx="4" ry="4" fill="' +
     hex +
-    '"/></svg>'
+    '"/>'
+  );
+};
+
+var renderColoredShape = function (shape, color) {
+  var hex = colorHex[color] || colorHex.neutral;
+  return (
+    '<svg width="160" height="160" viewBox="0 0 160 160" class="center">' +
+    shapeInnerSvg(shape, hex) +
+    '</svg>'
   );
 };
 
 var getStopStim = function () {
-  return preFileType + 'stopSignal' + postFileType;
+  return "<img class='center' src='" + pathSource + "stopSignal.png'>";
 };
 
 var getStim = function () {
@@ -282,6 +297,7 @@ var appendData = function (data) {
   data.group_index = group_index;
   data.block_order_idx = blockOrderIdx;
   data.key_config_idx = keyConfigIdx;
+  data.pairing_idx = pairingIdx;
   data.correct_response = correct_response;
   data.current_trial = currentTrial;
   data.condition = stimData.condition;
@@ -303,6 +319,18 @@ var appendData = function (data) {
 /*    Define Experimental Variables     */
 /* ************************************ */
 const fixationDuration = 500;
+
+var shapes = ['circle', 'square', 'diamond', 'hexagon'];
+
+// Three disjoint pairings of the 4 shapes into two response-key groups.
+// Counterbalanced across participants via group_index. The active pairing is
+// fixed for the whole session, so plain and feature blocks share the same
+// shape -> key map (no relearning across blocks).
+var shapePairings = [
+  [['circle', 'square'], ['diamond', 'hexagon']],
+  [['circle', 'diamond'], ['square', 'hexagon']],
+  [['circle', 'hexagon'], ['square', 'diamond']],
+];
 
 var possibleResponses;
 // keyMap[shape][color] -> key character.
@@ -338,27 +366,45 @@ function getKeyMappingForTask(keyConfigIdx, blockCondition) {
     possibleResponses = [middleFinger, indexFinger];
   }
 
+  // pairing[0] = shapes assigned to possibleResponses[0]'s key in plain/feature.
+  // pairing[1] = shapes assigned to possibleResponses[1]'s key in plain/feature.
+  var pairing = shapePairings[pairingIdx];
+  var pairOf = {};
+  for (var p = 0; p < 2; p++) {
+    for (var s = 0; s < pairing[p].length; s++) {
+      pairOf[pairing[p][s]] = p;
+    }
+  }
+
   // Build keyMap for the current block condition.
-  // Conjunctive XOR-like mapping:
-  //   {circle+colors[0], square+colors[1]} -> possibleResponses[0]
-  //   {circle+colors[1], square+colors[0]} -> possibleResponses[1]
-  // Feature: shape determines key; both colors of a shape share a key.
-  // Plain: only the neutral color exists; shape determines key.
-  keyMap = { circle: {}, square: {} };
-  if (blockCondition === 'conjunctive') {
-    keyMap.circle[colors[0]] = possibleResponses[0][1];
-    keyMap.square[colors[1]] = possibleResponses[0][1];
-    keyMap.circle[colors[1]] = possibleResponses[1][1];
-    keyMap.square[colors[0]] = possibleResponses[1][1];
+  // Plain:       only neutral color exists; pair-membership -> key.
+  // Feature:     shape determines key (color irrelevant); both colors of a
+  //              shape share that shape's key. Same shape -> key map as plain.
+  // Conjunctive: pair-membership XOR color index -> key. Same pair grouping,
+  //              but color flips which key each shape maps to.
+  keyMap = {};
+  for (var i = 0; i < shapes.length; i++) keyMap[shapes[i]] = {};
+
+  if (blockCondition === 'plain') {
+    for (var s2 = 0; s2 < shapes.length; s2++) {
+      keyMap[shapes[s2]][neutralColorKey] =
+        possibleResponses[pairOf[shapes[s2]]][1];
+    }
   } else if (blockCondition === 'feature') {
-    keyMap.circle[colors[0]] = possibleResponses[0][1];
-    keyMap.circle[colors[1]] = possibleResponses[0][1];
-    keyMap.square[colors[0]] = possibleResponses[1][1];
-    keyMap.square[colors[1]] = possibleResponses[1][1];
+    for (var s3 = 0; s3 < shapes.length; s3++) {
+      for (var c = 0; c < colors.length; c++) {
+        keyMap[shapes[s3]][colors[c]] =
+          possibleResponses[pairOf[shapes[s3]]][1];
+      }
+    }
   } else {
-    // plain: only the neutral color exists
-    keyMap.circle[neutralColorKey] = possibleResponses[0][1];
-    keyMap.square[neutralColorKey] = possibleResponses[1][1];
+    // conjunctive: pair XOR color
+    for (var s4 = 0; s4 < shapes.length; s4++) {
+      for (var c2 = 0; c2 < colors.length; c2++) {
+        var keyIdx = pairOf[shapes[s4]] ^ c2;
+        keyMap[shapes[s4]][colors[c2]] = possibleResponses[keyIdx][1];
+      }
+    }
   }
 }
 
@@ -371,11 +417,13 @@ var group_index = (function () {
   return Number.isFinite(gi) ? gi : 1;
 })();
 
-// Counterbalance: group_index 1..12 cycles through all 12 unique combos
-// (6 block orders x 2 key configs).
+// Counterbalance: group_index 1..36 cycles through all 36 unique combos
+// (6 block orders x 2 key configs x 3 shape pairings).
 var blockOrderIdx = ((group_index - 1) % 6 + 6) % 6;
 var keyConfigIdx = Math.floor((group_index - 1) / 6) % 2;
 if (keyConfigIdx < 0) keyConfigIdx += 2;
+var pairingIdx = Math.floor((group_index - 1) / 12) % 3;
+if (pairingIdx < 0) pairingIdx += 3;
 var blockOrder = taskOrders[blockOrderIdx];
 
 // Optional: allow URL/efVars to force a single block condition (for piloting).
@@ -434,10 +482,10 @@ var sumInstructTime = 0; // ms
 var instructTimeThresh = 5; // /in seconds
 var runAttentionChecks = true;
 
-// practiceLen: divisible by 6 (plain: 2 shapes x 3 stop conds) and 12 (feature/conjunctive: 4 stims x 3 stop conds)
-var practiceLen = 12;
-// numTrialsPerBlock: same constraint
-var numTrialsPerBlock = 60;
+// practiceLen: divisible by 12 (plain: 4 shapes x 3 stop conds) and 24 (feature/conjunctive: 8 stims x 3 stop conds)
+var practiceLen = 24;
+// numTrialsPerBlock: same constraint. 72 -> 6 reps/combo in plain, 3 reps/combo in feature/conjunctive.
+var numTrialsPerBlock = 72;
 // numTestBlocks runs of testNode PER block condition. We loop the block
 // condition externally (3 conditions x 1 test block each = 3 test blocks total).
 var numTestBlocks = 1;
@@ -469,7 +517,8 @@ var maxStopCorrectPractice = 1;
 var minStopCorrectPractice = 0;
 
 var stopSignalsConditions = ['go', 'go', 'stop'];
-var shapes = ['circle', 'square'];
+// shapes and shapePairings are declared earlier (near the keyMap logic) so
+// they're defined before the initial getKeyMappingForTask() call.
 
 /* Image paths — resolved dynamically from the URL experiment.js was loaded from,
    so this works under any deploy (local file://, /static/experiments/<folder>/,
@@ -491,12 +540,9 @@ var pathSource = (function () {
     : 'images/';
 })();
 
-var postFileType = ".png'></img>";
-var preFileType = "<img class = center src='" + pathSource;
-// append to images array to preload
-var images = [pathSource + 'stopSignal' + '.png'];
 // Shape stimuli are rendered as inline SVG (see renderColoredShape),
 // so only the stop-signal star needs preloading.
+var images = [pathSource + 'stopSignal.png'];
 
 // Per-block label for a (shape,color) stim.
 //   plain:       just the shape name ("circle" / "square")
@@ -580,25 +626,14 @@ var renderMappingPanel = function (size) {
   size = size || 90;
   var miniSvg = function (shape, color) {
     var hex = colorHex[color];
-    if (shape === 'circle') {
-      return (
-        '<svg width="' +
-        size +
-        '" height="' +
-        size +
-        '" viewBox="0 0 160 160"><circle cx="80" cy="80" r="60" fill="' +
-        hex +
-        '"/></svg>'
-      );
-    }
     return (
       '<svg width="' +
       size +
       '" height="' +
       size +
-      '" viewBox="0 0 160 160"><rect x="20" y="20" width="120" height="120" rx="4" ry="4" fill="' +
-      hex +
-      '"/></svg>'
+      '" viewBox="0 0 160 160">' +
+      shapeInnerSvg(shape, hex) +
+      '</svg>'
     );
   };
 
@@ -1286,6 +1321,10 @@ var feature_stop_task_init = () => {
     group_index: group_index,
     block_order_idx: blockOrderIdx,
     key_config_idx: keyConfigIdx,
+    pairing_idx: pairingIdx,
+    shape_pairing: shapePairings[pairingIdx]
+      .map(function (g) { return g.join('+'); })
+      .join('_vs_'),
     block_order: blockOrder.join('_'),
   });
 
