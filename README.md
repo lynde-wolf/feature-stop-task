@@ -1,31 +1,94 @@
 # Feature Stop Task
 
-Adapted from `experiment_3_task/simple_stop_signal_e3/`. Adds a color dimension
-(**blue**, **pink**) to the two shapes (circle, square). Each participant runs
-**three within-subjects blocks**, one per rule condition:
+Adapted from `experiment_3_task/simple_stop_signal_e3/`. Tests the interaction
+between response inhibition (stop-signal paradigm) and three levels of
+stimulus-response binding complexity.
 
-- **plain** — shapes appear in a single neutral color; respond based on shape.
+## Stimuli
+
+### Plain & Feature blocks — 4 base shapes
+
+All rendered as inline SVG (resolution-independent, colored dynamically per
+trial). Each shape fits a 160×160 viewBox with a ~120-px visual footprint.
+
+| Shape    | Geometry                                    |
+| -------- | ------------------------------------------- |
+| circle   | r=60, centered                              |
+| square   | 120×120, slight corner rounding (rx=4)      |
+| diamond  | square rotated 45°, same bounding box       |
+| hexagon  | regular flat-top hexagon, circumradius 60   |
+
+In **plain** blocks shapes appear in a single neutral grey (#e8e8e8).
+In **feature** blocks shapes appear in **blue** (#1976d2) or **pink** (#e91e63),
+but color is task-irrelevant — the response depends on shape alone.
+
+### Conjunctive block — 2 dedicated shapes
+
+| Shape    | Geometry                                    |
+| -------- | ------------------------------------------- |
+| triangle | equilateral, point-up, fills 120×114 bbox   |
+| star     | 5-pointed, outer r=60 / inner r=28          |
+
+These shapes appear **only** in the conjunctive block and **never** in plain or
+feature. This ensures the (shape, color) AND-binding is learned fresh — there is
+no prior shape→key code to override or interfere with.
+
+## Block conditions
+
+Each participant runs **three within-subjects blocks**, one per condition:
+
+- **plain** — 4 base shapes, neutral color; respond based on shape.
   Equivalent to the original simple stop task.
-- **feature** — shapes are blue or pink, but color is task-irrelevant; respond
-  based on shape (color is a perceptual distractor).
-- **conjunctive** — shape + color jointly determine the correct key:
-  `{blue circle, pink square}` → one key; `{pink circle, blue square}` → the
-  other (XOR-like mapping).
+- **feature** — 4 base shapes in blue or pink; color is task-irrelevant;
+  respond based on shape (color is a perceptual distractor). Same shape→key
+  map as plain.
+- **conjunctive** — triangle and star in blue or pink. Both shape AND color
+  determine the correct key (XOR-like mapping). Because these are novel shapes,
+  the AND-binding cost is isolated from any proactive interference with the
+  4-shape→2-key mapping learned in plain/feature.
 
-## Counterbalancing (`group_index` 1–12)
+## Key mapping: 4→2 pairing (plain & feature)
 
-`group_index` is the single dial that determines both block order and key
-mapping. With 1–12 it cycles through all 12 unique combos:
+The 4 base shapes are split into two pairs, each pair mapped to one response
+key (comma `,` or period `.`). Three disjoint pairings are counterbalanced
+across participants:
 
-- `blockOrderIdx = (group_index − 1) % 6` → one of 6 permutations of
-  `{plain, feature, conjunctive}`.
-- `keyConfigIdx = ⌊(group_index − 1) / 6⌋ % 2` → 2 key configs (which shape /
-  conjunctive pair goes to comma vs. period). Configs are *consistent across
-  conditions*: in config 0, circle goes to comma in plain & feature blocks,
-  and blue-circle → comma in conjunctive too.
+| Pairing | Key A shapes         | Key B shapes          |
+| ------- | -------------------- | --------------------- |
+| 1       | circle, square       | diamond, hexagon      |
+| 2       | circle, diamond      | square, hexagon       |
+| 3       | circle, hexagon      | square, diamond       |
+
+The pairing is **fixed for the entire session**: a participant sees the same
+shape→key binding in both the plain and feature blocks.
+
+### Conjunctive key mapping
+
+Triangle and star use the same two keys (`,` / `.`) but with an XOR-like rule:
+
+| Stimulus          | Key   |
+| ----------------- | ----- |
+| blue triangle     | `,`   |
+| pink triangle     | `.`   |
+| blue star         | `.`   |
+| pink star         | `,`   |
+
+(Flipped when `keyConfigIdx = 1`.)
+
+## Counterbalancing (`group_index` 1–36)
+
+`group_index` is the single dial that determines block order, key assignment,
+and shape pairing. 36 cells = 6 block orders × 2 key configs × 3 pairings.
+
+| Component       | Formula                                    | Range |
+| --------------- | ------------------------------------------ | ----- |
+| blockOrderIdx   | `(gi − 1) % 6`                            | 0–5   |
+| keyConfigIdx    | `⌊(gi − 1) / 6⌋ % 2`                     | 0–1   |
+| pairingIdx      | `⌊(gi − 1) / 12⌋ % 3`                    | 0–2   |
 
 Saved per trial: `group_index`, `block_order_idx`, `key_config_idx`,
-`block_condition`, `block_order` (e.g. `"plain_feature_conjunctive"`).
+`pairing_idx`, `shape_pairing` (e.g. `"circle+square_vs_diamond+hexagon"`),
+`conj_shapes` (`"triangle+star"`), `block_condition`, `block_order`.
 
 ## Timeline per block
 
@@ -36,8 +99,29 @@ For each block in `blockOrder`:
 2. block-specific instructions (rule + visual stim→key mapping panel +
    stop-signal explanation + practice intro)
 3. per-block practice (loops until accuracy threshold or `practiceThresh`)
-4. one test block (60 trials, 33% stop)
+4. one test block (72 trials, 33% stop)
 5. between-block feedback (or end-of-task message after the final block)
+
+## Trial structure
+
+| Event    | Duration (ms)                                           |
+| -------- | ------------------------------------------------------- |
+| Fixation | 500                                                     |
+| Probe    | 1500 (1000 ms stimulus presentation, 500 ms blank)      |
+| ITI      | 500 (mean), 0 (min), 5000 (max)                         |
+
+## Blocks
+
+| Block type | Number of blocks | Trials per block |
+| ---------- | ---------------- | ---------------- |
+| Test       | 3                | 72               |
+
+## Conditions and probabilities
+
+| Condition | Probability |
+| --------- | ----------- |
+| Go        | 66.66%      |
+| Stop      | 33.33%      |
 
 ## Repo layout
 
@@ -60,75 +144,57 @@ python3 -m http.server 8786
 
 Open `http://localhost:8786/`. Defaults to a full 3-block session counterbalanced
 by `group_index=1`. To pilot a single block in isolation, pick one from the
-dropdown or pass `?task_type=plain|feature|conjunctive` in the URL.
+dropdown or pass `?task_type=plain|feature|conjunctive` in the URL. The launcher
+shows a live mapping table that updates as you change `group_index`.
 
 ---
 
-## Trial Structure
+## Task instructions (participant-facing)
 
-| Event    | Duration (ms)                                           |
-| -------- | ------------------------------------------------------- |
-| Fixation | 500                                                     |
-| Probe    | 1500 (1000ms stimulus presentation, 500ms blank screen) |
-| ITI      | 500 (mean), 0 (min), 5000 (max)                         |
-
-## Blocks
-
-| Block Type | Number of Blocks | Trials per Block |
-| ---------- | ---------------- | ---------------- |
-| Test       | 3                | 60               |
-
-## Conditions and Probabilities
-
-| Condition | Probability |
-| --------- | ----------- |
-| Go        | 66.66%      |
-| Stop      | 33.33%      |
-
----
-
-## Stop-Signal Task Instructions
-
-### Enable Fullscreen
+### Enable fullscreen
 
 > The experiment will switch to full screen mode when you press the button below.
 
-### Welcome Screen
+### Welcome screen
 
-> Welcome! This experiment will take around 10 minutes. To avoid technical issues, please keep the experiment tab (on Chrome or Firefox) active and fullscreen for the whole duration of each task. Press enter to begin.
+> Welcome! This experiment will take around 10 to 15 minutes. To avoid technical
+> issues, please keep the experiment tab (on Chrome or Firefox) active and in
+> fullscreen mode for the whole duration of each task. Press enter to begin.
 
----
+### Page 1: key placement
 
-### Task Instructions
-
-#### Page 1: Setup
-
-> Place your index finger on the comma key (,) and your middle finger on the period key (.).
+> Place your index finger on the comma key (,) and your middle finger on the
+> period key (.).
 >
-> During this task, on each trial, you will see shapes appear on the screen one at a time.
->
-> If the shape is a circle, press your index finger.
->
-> If the shape is a square, press your middle finger.
->
-> You should respond as quickly and accurately as possible to each shape.
+> During this task, on each trial, you will see shapes appear on the screen one
+> at a time.
 
-#### Page 2: Setup cont.
+(Shape→key rules are generated dynamically per block, including visual SVG
+mapping panels.)
 
-> On some trials, a star will appear around the shape, shortly after the shape appears.
->
-> If you see the star, please try your best to withhold your response on that trial.
->
-> If the star appears and you try your best to withhold your response, you will find that you will be able to stop sometimes, but not always.
->
-> Please do not slow down your responses in order to wait for the star. It is equally important to respond quickly on trials without the star as it is to stop on trials with the star.
+### Page 2: stop signal
 
-#### Page 3: Practice Round
+> On some trials, a star will appear around the shape, shortly after the shape
+> appears.
+>
+> If you see the star, please try your best to withhold your response on that
+> trial.
+>
+> If the star appears and you try your best to withhold your response, you will
+> find that you will be able to stop sometimes, but not always.
+>
+> Please do not slow down your responses in order to wait for the star. It is
+> equally important to respond quickly on trials without the star as it is to
+> stop on trials with the star.
 
-> We'll start with a practice round. During practice, you will receive feedback and a reminder of the rules. These will be taken out for the test, so make sure you understand the instructions before moving on.
+### Page 3: practice intro
+
+> We'll start with a practice round. During practice, you will receive feedback
+> and a reminder of the rules. These will be taken out for the test, so make
+> sure you understand the instructions before moving on.
 >
 > Try to respond as quickly and accurately as possible.
 
-#### Page 4: Start Practice
+### Page 4: start practice
 
 > Press enter to begin practice.
