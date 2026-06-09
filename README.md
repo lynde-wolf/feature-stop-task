@@ -6,28 +6,61 @@ stimulus-response binding complexity.
 
 ## Stimuli
 
+All shapes are rendered as inline SVG (resolution-independent, colored
+dynamically per trial). Each fits a 160×160 viewBox with a ~120-px visual
+footprint.
+
 ### Plain & Feature blocks — 4 base shapes
 
-All rendered as inline SVG (resolution-independent, colored dynamically per
-trial). Each shape fits a 160×160 viewBox with a ~120-px visual footprint.
+<table>
+<tr>
+<td align="center"><strong>circle</strong><br><svg width="80" height="80" viewBox="0 0 160 160"><circle cx="80" cy="80" r="60" fill="#e8e8e8"/></svg></td>
+<td align="center"><strong>square</strong><br><svg width="80" height="80" viewBox="0 0 160 160"><rect x="20" y="20" width="120" height="120" rx="4" ry="4" fill="#e8e8e8"/></svg></td>
+<td align="center"><strong>diamond</strong><br><svg width="80" height="80" viewBox="0 0 160 160"><polygon points="80,20 140,80 80,140 20,80" fill="#e8e8e8"/></svg></td>
+<td align="center"><strong>hexagon</strong><br><svg width="80" height="80" viewBox="0 0 160 160"><polygon points="50,28 110,28 140,80 110,132 50,132 20,80" fill="#e8e8e8"/></svg></td>
+</tr>
+<tr>
+<td align="center" colspan="4"><em>neutral (plain block)</em></td>
+</tr>
+</table>
 
-| Shape    | Geometry                                    |
-| -------- | ------------------------------------------- |
-| circle   | r=60, centered                              |
-| square   | 120×120, slight corner rounding (rx=4)      |
-| diamond  | square rotated 45°, same bounding box       |
-| hexagon  | regular flat-top hexagon, circumradius 60   |
-
-In **plain** blocks shapes appear in a single neutral grey (#e8e8e8).
-In **feature** blocks shapes appear in **blue** (#1976d2) or **pink** (#e91e63),
-but color is task-irrelevant — the response depends on shape alone.
+<table>
+<tr>
+<td align="center"><svg width="60" height="60" viewBox="0 0 160 160"><circle cx="80" cy="80" r="60" fill="#1976d2"/></svg></td>
+<td align="center"><svg width="60" height="60" viewBox="0 0 160 160"><rect x="20" y="20" width="120" height="120" rx="4" ry="4" fill="#1976d2"/></svg></td>
+<td align="center"><svg width="60" height="60" viewBox="0 0 160 160"><polygon points="80,20 140,80 80,140 20,80" fill="#1976d2"/></svg></td>
+<td align="center"><svg width="60" height="60" viewBox="0 0 160 160"><polygon points="50,28 110,28 140,80 110,132 50,132 20,80" fill="#1976d2"/></svg></td>
+</tr>
+<tr>
+<td align="center"><svg width="60" height="60" viewBox="0 0 160 160"><circle cx="80" cy="80" r="60" fill="#e91e63"/></svg></td>
+<td align="center"><svg width="60" height="60" viewBox="0 0 160 160"><rect x="20" y="20" width="120" height="120" rx="4" ry="4" fill="#e91e63"/></svg></td>
+<td align="center"><svg width="60" height="60" viewBox="0 0 160 160"><polygon points="80,20 140,80 80,140 20,80" fill="#e91e63"/></svg></td>
+<td align="center"><svg width="60" height="60" viewBox="0 0 160 160"><polygon points="50,28 110,28 140,80 110,132 50,132 20,80" fill="#e91e63"/></svg></td>
+</tr>
+<tr>
+<td align="center" colspan="4"><em>blue / pink (feature block) — color is present but task-irrelevant</em></td>
+</tr>
+</table>
 
 ### Conjunctive block — 2 dedicated shapes
 
-| Shape    | Geometry                                    |
-| -------- | ------------------------------------------- |
-| triangle | equilateral, point-up, fills 120×114 bbox   |
-| star     | 5-pointed, outer r=60 / inner r=28          |
+<table>
+<tr>
+<td align="center"><svg width="60" height="60" viewBox="0 0 160 160"><polygon points="80,20 140,134 20,134" fill="#1976d2"/></svg></td>
+<td align="center"><svg width="60" height="60" viewBox="0 0 160 160"><polygon points="80,20 97.62,65.78 145.27,67.42 107.94,97.34 121.38,143.18 80,118 38.62,143.18 52.06,97.34 14.73,67.42 62.38,65.78" fill="#1976d2"/></svg></td>
+</tr>
+<tr>
+<td align="center"><svg width="60" height="60" viewBox="0 0 160 160"><polygon points="80,20 140,134 20,134" fill="#e91e63"/></svg></td>
+<td align="center"><svg width="60" height="60" viewBox="0 0 160 160"><polygon points="80,20 97.62,65.78 145.27,67.42 107.94,97.34 121.38,143.18 80,118 38.62,143.18 52.06,97.34 14.73,67.42 62.38,65.78" fill="#e91e63"/></svg></td>
+</tr>
+<tr>
+<td align="center"><strong>triangle</strong></td>
+<td align="center"><strong>star</strong></td>
+</tr>
+<tr>
+<td align="center" colspan="2"><em>blue / pink — both shape AND color determine the response (XOR rule)</em></td>
+</tr>
+</table>
 
 These shapes appear **only** in the conjunctive block and **never** in plain or
 feature. This ensures the (shape, color) AND-binding is learned fresh — there is
