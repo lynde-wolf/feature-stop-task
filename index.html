@@ -28,7 +28,7 @@
   </div>
 </div>
 
-<div id="task-selector" style="font-family: sans-serif; padding: 40px; max-width: 600px; margin: 0 auto;">
+<div id="task-selector" style="font-family: sans-serif; padding: 40px; max-width: 600px; margin: 0 auto; color: #fff;">
   <h2>Feature Stop Task — local test runner</h2>
   <form id="selector-form">
     <label style="display:block; margin: 16px 0 8px;">
@@ -42,9 +42,15 @@
     </label>
     <label style="display:block; margin: 16px 0 8px;">
       group_index:
-      <input type="number" id="group-index-input" value="1" min="1" max="12" style="width: 60px;">
-      <span style="color: #666; font-size: 90%;">(1–12: 6 block orders × 2 key configs)</span>
+      <input type="number" id="group-index-input" value="1" min="1" max="36" style="width: 60px;">
+      <span style="color: #ddd; font-size: 90%;">(1–36: 6 block orders × 2 key configs × 3 shape pairings)</span>
     </label>
+    <p style="color: #ddd; font-size: 85%; margin: 4px 0 0 0; line-height: 1.4;">
+      Cycles: block order every 1, key direction every 6, shape pairing every 12.
+      Plain &amp; feature use circle/square/diamond/hexagon (paired 4→2);
+      conjunctive uses triangle &amp; star — shapes the participant never saw before, so the AND-binding is learned fresh without overriding a prior shape→key code.
+    </p>
+    <div id="mapping-preview" style="margin: 18px 0 0 0;"></div>
     <button type="submit" style="padding: 8px 16px; margin-top: 12px;">Start</button>
   </form>
 </div>
@@ -275,6 +281,107 @@ if (window._autostart) {
     if (tt) params.set('task_type', tt);
     window.location.search = '?' + params.toString();
   });
+
+  // Live shape -> key mapping preview. Reuses experiment.js helpers
+  // (shapes, shapePairings, shapeInnerSvg, getKeyMappingForTask, colorHex)
+  // so any change to the pairing logic flows through automatically.
+  (function () {
+    var giInput = document.getElementById('group-index-input');
+    var blockSel = document.getElementById('task-type-input');
+    var host = document.getElementById('mapping-preview');
+    if (!giInput || !host) return;
+
+    var renderPreview = function () {
+      var gi = parseInt(giInput.value, 10);
+      if (!Number.isFinite(gi) || gi < 1) gi = 1;
+      // Decompose gi exactly as experiment.js does.
+      window.pairingIdx = Math.floor((gi - 1) / 12) % 3;
+      if (window.pairingIdx < 0) window.pairingIdx += 3;
+      var kc = Math.floor((gi - 1) / 6) % 2;
+      if (kc < 0) kc += 2;
+      var blockOrderIdx = ((gi - 1) % 6 + 6) % 6;
+
+      var forcedBlock = blockSel ? blockSel.value : '';
+      // Show the shape -> key map for the plain block (color-free), since
+      // that's the binding participants learn first. Note plain == feature
+      // for shape->key purposes; we surface that fact in the caption.
+      var previewBlock = (forcedBlock === 'conjunctive') ? 'conjunctive' : 'plain';
+      getKeyMappingForTask(kc, previewBlock);
+
+      var pairing = shapePairings[window.pairingIdx];
+      // conjShapes is a fixed module-level constant in experiment.js.
+      var displayShapes = previewBlock === 'conjunctive' ? conjShapes : shapes;
+      var svg = function (shape, hex) {
+        return '<svg width="40" height="40" viewBox="0 0 160 160">' +
+               shapeInnerSvg(shape, hex || '#e8e8e8') + '</svg>';
+      };
+      var keyChip = function (label) {
+        return '<span style="display:inline-block;font-family:monospace;' +
+               'font-size:18px;padding:4px 12px;border:2px solid #ddd;' +
+               'border-radius:6px;background:#444;color:#fff;">' +
+               label + '</span>';
+      };
+
+      var html = '';
+      var caption = previewBlock === 'conjunctive'
+        ? '(shape, color) → key map (conjunctive block — fresh AND-binding over triangle &amp; star, no prior shape→key code)'
+        : 'shape → key map (plain &amp; feature blocks share this binding; conjunctive uses separate shapes)';
+      html += '<div style="font-size:90%;color:#ddd;margin-bottom:6px;">' + caption + '</div>';
+      html += '<table style="border-collapse:collapse;color:#fff;font-size:95%;">';
+
+      if (previewBlock === 'conjunctive') {
+        // Header: blue, pink columns.
+        html += '<thead><tr>' +
+                '<th style="text-align:left;padding:6px 12px;">shape</th>' +
+                '<th style="padding:6px 12px;">blue</th>' +
+                '<th style="padding:6px 12px;">pink</th>' +
+                '</tr></thead><tbody>';
+        for (var i = 0; i < displayShapes.length; i++) {
+          var sh = displayShapes[i];
+          html += '<tr>' +
+                  '<td style="padding:6px 12px;border-top:1px solid #555;">' +
+                    svg(sh, '#e8e8e8') + '&nbsp;<span style="vertical-align:middle;">' + sh + '</span></td>' +
+                  '<td style="padding:6px 12px;border-top:1px solid #555;text-align:center;">' +
+                    keyChip(keyMap[sh].blue) + '</td>' +
+                  '<td style="padding:6px 12px;border-top:1px solid #555;text-align:center;">' +
+                    keyChip(keyMap[sh].pink) + '</td>' +
+                  '</tr>';
+        }
+        html += '</tbody>';
+      } else {
+        // Group by key (two rows, one per response key).
+        html += '<tbody>';
+        for (var k = 0; k < 2; k++) {
+          var groupShapes = pairing[k];
+          var keyChar = possibleResponses[k][1];
+          html += '<tr><td style="padding:8px 12px;border-top:1px solid #555;">';
+          for (var g = 0; g < groupShapes.length; g++) {
+            html += '<span style="display:inline-block;margin-right:8px;vertical-align:middle;">' +
+                    svg(groupShapes[g], '#e8e8e8') + '</span>';
+          }
+          html += '<span style="vertical-align:middle;color:#ddd;">' +
+                  groupShapes.join(' or ') + '</span></td>' +
+                  '<td style="padding:8px 12px;border-top:1px solid #555;font-size:22px;text-align:center;">→</td>' +
+                  '<td style="padding:8px 12px;border-top:1px solid #555;text-align:center;">' +
+                  keyChip(possibleResponses[k][2]) + '</td></tr>';
+        }
+        html += '</tbody>';
+      }
+      html += '</table>';
+      // Decomposition summary.
+      html += '<div style="font-size:80%;color:#bbb;margin-top:6px;">' +
+              'gi ' + gi + ' → pairing ' + (window.pairingIdx + 1) + '/3, ' +
+              'key config ' + (kc + 1) + '/2, ' +
+              'block order ' + (blockOrderIdx + 1) + '/6 (' +
+              taskOrders[blockOrderIdx].join(' → ') + '). ' +
+              'Conj shapes (fixed): ' + conjShapes.join(', ') + '.</div>';
+      host.innerHTML = html;
+    };
+
+    giInput.addEventListener('input', renderPreview);
+    if (blockSel) blockSel.addEventListener('change', renderPreview);
+    renderPreview();
+  })();
 }
 </script>
 </body>

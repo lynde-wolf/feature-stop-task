@@ -188,22 +188,24 @@ const getFeedback =
 
 var createTrialTypes = function (numTrialsPerBlock, blockCondition) {
   // Plain blocks use a single neutral-color stimulus; feature & conjunctive
-  // blocks span both colors.
+  // blocks span both colors. Conjunctive uses only a 2-shape subset so the
+  // shape -> key binding from plain/feature carries over without relearning.
   var stimColors =
     blockCondition === 'plain' ? [neutralColorKey] : colors;
+  var blockShapes = shapesForBlock(blockCondition);
 
   var uniqueCombos =
-    stopSignalsConditions.length * shapes.length * stimColors.length;
+    stopSignalsConditions.length * blockShapes.length * stimColors.length;
 
   var stims = [];
   for (var x = 0; x < stopSignalsConditions.length; x++) {
-    for (var j = 0; j < shapes.length; j++) {
+    for (var j = 0; j < blockShapes.length; j++) {
       for (var c = 0; c < stimColors.length; c++) {
         stim = {
-          stim: shapes[j],
+          stim: blockShapes[j],
           color: stimColors[c],
           block_condition: blockCondition,
-          correct_response: getResponseForStim(shapes[j], stimColors[c]),
+          correct_response: getResponseForStim(blockShapes[j], stimColors[c]),
           condition: stopSignalsConditions[x],
         };
         stims.push(stim);
@@ -229,6 +231,19 @@ var shapeInnerSvg = function (shape, hex) {
     // Regular hexagon, flat-top, circumradius 60 (matches circle).
     return (
       '<polygon points="50,28 110,28 140,80 110,132 50,132 20,80" fill="' +
+      hex +
+      '"/>'
+    );
+  }
+  if (shape === 'triangle') {
+    // Equilateral-ish triangle, point up, fills the 120x120 bounding box.
+    return '<polygon points="80,20 140,134 20,134" fill="' + hex + '"/>';
+  }
+  if (shape === 'star') {
+    // 5-pointed star, outer radius 60, inner radius 28, centered at (80,80),
+    // top point up.
+    return (
+      '<polygon points="80,20 97.62,65.78 145.27,67.42 107.94,97.34 121.38,143.18 80,118 38.62,143.18 52.06,97.34 14.73,67.42 62.38,65.78" fill="' +
       hex +
       '"/>'
     );
@@ -332,6 +347,15 @@ var shapePairings = [
   [['circle', 'hexagon'], ['square', 'diamond']],
 ];
 
+// Dedicated shapes for the conjunctive block, NOT used in plain or feature.
+// This isolates the conjunctive AND-binding cost from any proactive
+// interference with a previously-learned shape -> key mapping.
+var conjShapes = ['triangle', 'star'];
+// pairOf-style mapping for conjunctive: triangle -> group 0, star -> group 1.
+// Combined with color index via XOR inside getKeyMappingForTask, this gives
+// the 2-shape x 2-color -> 2-key conjunctive structure.
+var conjPairOf = { triangle: 0, star: 1 };
+
 var possibleResponses;
 // keyMap[shape][color] -> key character.
 // Rebuilt per block via getKeyMappingForTask(keyConfigIdx, blockCondition).
@@ -380,10 +404,13 @@ function getKeyMappingForTask(keyConfigIdx, blockCondition) {
   // Plain:       only neutral color exists; pair-membership -> key.
   // Feature:     shape determines key (color irrelevant); both colors of a
   //              shape share that shape's key. Same shape -> key map as plain.
-  // Conjunctive: pair-membership XOR color index -> key. Same pair grouping,
-  //              but color flips which key each shape maps to.
+  // Conjunctive: uses a SEPARATE shape set (conjShapes) the participant never
+  //              saw in plain/feature, so there's no prior shape -> key code
+  //              to override. Key is pair-membership XOR color index, where
+  //              pair-membership is given by conjPairOf.
   keyMap = {};
   for (var i = 0; i < shapes.length; i++) keyMap[shapes[i]] = {};
+  for (var ic = 0; ic < conjShapes.length; ic++) keyMap[conjShapes[ic]] = {};
 
   if (blockCondition === 'plain') {
     for (var s2 = 0; s2 < shapes.length; s2++) {
@@ -398,11 +425,12 @@ function getKeyMappingForTask(keyConfigIdx, blockCondition) {
       }
     }
   } else {
-    // conjunctive: pair XOR color
-    for (var s4 = 0; s4 < shapes.length; s4++) {
+    // conjunctive: AND-binding over (shape, color) using the dedicated
+    // conjShapes set. pair XOR color.
+    for (var s4 = 0; s4 < conjShapes.length; s4++) {
       for (var c2 = 0; c2 < colors.length; c2++) {
-        var keyIdx = pairOf[shapes[s4]] ^ c2;
-        keyMap[shapes[s4]][colors[c2]] = possibleResponses[keyIdx][1];
+        var keyIdx = conjPairOf[conjShapes[s4]] ^ c2;
+        keyMap[conjShapes[s4]][colors[c2]] = possibleResponses[keyIdx][1];
       }
     }
   }
@@ -419,12 +447,22 @@ var group_index = (function () {
 
 // Counterbalance: group_index 1..36 cycles through all 36 unique combos
 // (6 block orders x 2 key configs x 3 shape pairings).
+// conjShapes are dedicated to the conjunctive block (not in shapePairings),
+// so no extra dimension is needed to "pick" them.
 var blockOrderIdx = ((group_index - 1) % 6 + 6) % 6;
 var keyConfigIdx = Math.floor((group_index - 1) / 6) % 2;
 if (keyConfigIdx < 0) keyConfigIdx += 2;
 var pairingIdx = Math.floor((group_index - 1) / 12) % 3;
 if (pairingIdx < 0) pairingIdx += 3;
 var blockOrder = taskOrders[blockOrderIdx];
+
+// Per-block stim set. Plain & feature use the 4 base shapes; conjunctive uses
+// a dedicated 2-shape set (triangle, star) the participant never saw before,
+// so the (shape, color) AND-binding is learned fresh without proactive
+// interference from a previously-established shape -> key code.
+function shapesForBlock(blockCondition) {
+  return blockCondition === 'conjunctive' ? conjShapes : shapes;
+}
 
 // Optional: allow URL/efVars to force a single block condition (for piloting).
 var forcedBlockCondition =
@@ -571,11 +609,12 @@ function buildPromptsForBlock(blockCondition) {
     { resp: possibleResponses[0], stims: [] },
     { resp: possibleResponses[1], stims: [] },
   ];
-  for (var s = 0; s < shapes.length; s++) {
+  var blockShapes = shapesForBlock(blockCondition);
+  for (var s = 0; s < blockShapes.length; s++) {
     for (var c = 0; c < stimColors.length; c++) {
-      var key = getResponseForStim(shapes[s], stimColors[c]);
+      var key = getResponseForStim(blockShapes[s], stimColors[c]);
       var bucket = byKey[0].resp[1] === key ? byKey[0] : byKey[1];
-      bucket.stims.push(labelFor(shapes[s], stimColors[c]));
+      bucket.stims.push(labelFor(blockShapes[s], stimColors[c]));
     }
   }
   // Deduplicate the feature/plain case ("circle" appears twice etc).
@@ -639,15 +678,16 @@ var renderMappingPanel = function (size) {
 
   var stimColors =
     currentBlockCondition === 'plain' ? [neutralColorKey] : colors;
+  var panelShapes = shapesForBlock(currentBlockCondition);
   var rowHtml = function (bucket) {
     // List the unique (shape,color) pairs that map to this bucket's key.
     var pairs = [];
-    for (var s = 0; s < shapes.length; s++) {
+    for (var s = 0; s < panelShapes.length; s++) {
       for (var c = 0; c < stimColors.length; c++) {
         if (
-          getResponseForStim(shapes[s], stimColors[c]) === bucket.resp[1]
+          getResponseForStim(panelShapes[s], stimColors[c]) === bucket.resp[1]
         ) {
-          pairs.push([shapes[s], stimColors[c]]);
+          pairs.push([panelShapes[s], stimColors[c]]);
         }
       }
     }
@@ -1325,6 +1365,7 @@ var feature_stop_task_init = () => {
     shape_pairing: shapePairings[pairingIdx]
       .map(function (g) { return g.join('+'); })
       .join('_vs_'),
+    conj_shapes: conjShapes.join('+'),
     block_order: blockOrder.join('_'),
   });
 
