@@ -14,10 +14,10 @@ footprint.
 
 <table>
 <tr>
-<td align="center"><strong>circle</strong><br><img src="feature_stop_task/images/circle_neutral.svg" width="80"></td>
-<td align="center"><strong>square</strong><br><img src="feature_stop_task/images/square_neutral.svg" width="80"></td>
-<td align="center"><strong>diamond</strong><br><img src="feature_stop_task/images/diamond_neutral.svg" width="80"></td>
-<td align="center"><strong>hexagon</strong><br><img src="feature_stop_task/images/hexagon_neutral.svg" width="80"></td>
+<td align="center"><strong>circle</strong><br><img src="feature_stop_task/images/circle_neutral.png" width="80"></td>
+<td align="center"><strong>square</strong><br><img src="feature_stop_task/images/square_neutral.png" width="80"></td>
+<td align="center"><strong>diamond</strong><br><img src="feature_stop_task/images/diamond_neutral.png" width="80"></td>
+<td align="center"><strong>hexagon</strong><br><img src="feature_stop_task/images/hexagon_neutral.png" width="80"></td>
 </tr>
 <tr>
 <td align="center" colspan="4"><em>neutral (plain block)</em></td>
@@ -26,16 +26,16 @@ footprint.
 
 <table>
 <tr>
-<td align="center"><img src="feature_stop_task/images/circle_blue.svg" width="60"></td>
-<td align="center"><img src="feature_stop_task/images/square_blue.svg" width="60"></td>
-<td align="center"><img src="feature_stop_task/images/diamond_blue.svg" width="60"></td>
-<td align="center"><img src="feature_stop_task/images/hexagon_blue.svg" width="60"></td>
+<td align="center"><img src="feature_stop_task/images/circle_blue.png" width="60"></td>
+<td align="center"><img src="feature_stop_task/images/square_blue.png" width="60"></td>
+<td align="center"><img src="feature_stop_task/images/diamond_blue.png" width="60"></td>
+<td align="center"><img src="feature_stop_task/images/hexagon_blue.png" width="60"></td>
 </tr>
 <tr>
-<td align="center"><img src="feature_stop_task/images/circle_pink.svg" width="60"></td>
-<td align="center"><img src="feature_stop_task/images/square_pink.svg" width="60"></td>
-<td align="center"><img src="feature_stop_task/images/diamond_pink.svg" width="60"></td>
-<td align="center"><img src="feature_stop_task/images/hexagon_pink.svg" width="60"></td>
+<td align="center"><img src="feature_stop_task/images/circle_pink.png" width="60"></td>
+<td align="center"><img src="feature_stop_task/images/square_pink.png" width="60"></td>
+<td align="center"><img src="feature_stop_task/images/diamond_pink.png" width="60"></td>
+<td align="center"><img src="feature_stop_task/images/hexagon_pink.png" width="60"></td>
 </tr>
 <tr>
 <td align="center" colspan="4"><em>blue / pink (feature block) — color is present but task-irrelevant</em></td>
@@ -46,12 +46,12 @@ footprint.
 
 <table>
 <tr>
-<td align="center"><img src="feature_stop_task/images/triangle_blue.svg" width="60"></td>
-<td align="center"><img src="feature_stop_task/images/star_blue.svg" width="60"></td>
+<td align="center"><img src="feature_stop_task/images/triangle_blue.png" width="60"></td>
+<td align="center"><img src="feature_stop_task/images/star_blue.png" width="60"></td>
 </tr>
 <tr>
-<td align="center"><img src="feature_stop_task/images/triangle_pink.svg" width="60"></td>
-<td align="center"><img src="feature_stop_task/images/star_pink.svg" width="60"></td>
+<td align="center"><img src="feature_stop_task/images/triangle_pink.png" width="60"></td>
+<td align="center"><img src="feature_stop_task/images/star_pink.png" width="60"></td>
 </tr>
 <tr>
 <td align="center"><strong>triangle</strong></td>
