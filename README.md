@@ -14,10 +14,10 @@ footprint.
 
 <table>
 <tr>
-<td align="center"><strong>circle</strong><br><svg width="80" height="80" viewBox="0 0 160 160"><circle cx="80" cy="80" r="60" fill="#e8e8e8"/></svg></td>
-<td align="center"><strong>square</strong><br><svg width="80" height="80" viewBox="0 0 160 160"><rect x="20" y="20" width="120" height="120" rx="4" ry="4" fill="#e8e8e8"/></svg></td>
-<td align="center"><strong>diamond</strong><br><svg width="80" height="80" viewBox="0 0 160 160"><polygon points="80,20 140,80 80,140 20,80" fill="#e8e8e8"/></svg></td>
-<td align="center"><strong>hexagon</strong><br><svg width="80" height="80" viewBox="0 0 160 160"><polygon points="50,28 110,28 140,80 110,132 50,132 20,80" fill="#e8e8e8"/></svg></td>
+<td align="center"><strong>circle</strong><br><img src="feature_stop_task/images/circle_neutral.svg" width="80"></td>
+<td align="center"><strong>square</strong><br><img src="feature_stop_task/images/square_neutral.svg" width="80"></td>
+<td align="center"><strong>diamond</strong><br><img src="feature_stop_task/images/diamond_neutral.svg" width="80"></td>
+<td align="center"><strong>hexagon</strong><br><img src="feature_stop_task/images/hexagon_neutral.svg" width="80"></td>
 </tr>
 <tr>
 <td align="center" colspan="4"><em>neutral (plain block)</em></td>
@@ -26,16 +26,16 @@ footprint.
 
 <table>
 <tr>
-<td align="center"><svg width="60" height="60" viewBox="0 0 160 160"><circle cx="80" cy="80" r="60" fill="#1976d2"/></svg></td>
-<td align="center"><svg width="60" height="60" viewBox="0 0 160 160"><rect x="20" y="20" width="120" height="120" rx="4" ry="4" fill="#1976d2"/></svg></td>
-<td align="center"><svg width="60" height="60" viewBox="0 0 160 160"><polygon points="80,20 140,80 80,140 20,80" fill="#1976d2"/></svg></td>
-<td align="center"><svg width="60" height="60" viewBox="0 0 160 160"><polygon points="50,28 110,28 140,80 110,132 50,132 20,80" fill="#1976d2"/></svg></td>
+<td align="center"><img src="feature_stop_task/images/circle_blue.svg" width="60"></td>
+<td align="center"><img src="feature_stop_task/images/square_blue.svg" width="60"></td>
+<td align="center"><img src="feature_stop_task/images/diamond_blue.svg" width="60"></td>
+<td align="center"><img src="feature_stop_task/images/hexagon_blue.svg" width="60"></td>
 </tr>
 <tr>
-<td align="center"><svg width="60" height="60" viewBox="0 0 160 160"><circle cx="80" cy="80" r="60" fill="#e91e63"/></svg></td>
-<td align="center"><svg width="60" height="60" viewBox="0 0 160 160"><rect x="20" y="20" width="120" height="120" rx="4" ry="4" fill="#e91e63"/></svg></td>
-<td align="center"><svg width="60" height="60" viewBox="0 0 160 160"><polygon points="80,20 140,80 80,140 20,80" fill="#e91e63"/></svg></td>
-<td align="center"><svg width="60" height="60" viewBox="0 0 160 160"><polygon points="50,28 110,28 140,80 110,132 50,132 20,80" fill="#e91e63"/></svg></td>
+<td align="center"><img src="feature_stop_task/images/circle_pink.svg" width="60"></td>
+<td align="center"><img src="feature_stop_task/images/square_pink.svg" width="60"></td>
+<td align="center"><img src="feature_stop_task/images/diamond_pink.svg" width="60"></td>
+<td align="center"><img src="feature_stop_task/images/hexagon_pink.svg" width="60"></td>
 </tr>
 <tr>
 <td align="center" colspan="4"><em>blue / pink (feature block) — color is present but task-irrelevant</em></td>
@@ -46,12 +46,12 @@ footprint.
 
 <table>
 <tr>
-<td align="center"><svg width="60" height="60" viewBox="0 0 160 160"><polygon points="80,20 140,134 20,134" fill="#1976d2"/></svg></td>
-<td align="center"><svg width="60" height="60" viewBox="0 0 160 160"><polygon points="80,20 97.62,65.78 145.27,67.42 107.94,97.34 121.38,143.18 80,118 38.62,143.18 52.06,97.34 14.73,67.42 62.38,65.78" fill="#1976d2"/></svg></td>
+<td align="center"><img src="feature_stop_task/images/triangle_blue.svg" width="60"></td>
+<td align="center"><img src="feature_stop_task/images/star_blue.svg" width="60"></td>
 </tr>
 <tr>
-<td align="center"><svg width="60" height="60" viewBox="0 0 160 160"><polygon points="80,20 140,134 20,134" fill="#e91e63"/></svg></td>
-<td align="center"><svg width="60" height="60" viewBox="0 0 160 160"><polygon points="80,20 97.62,65.78 145.27,67.42 107.94,97.34 121.38,143.18 80,118 38.62,143.18 52.06,97.34 14.73,67.42 62.38,65.78" fill="#e91e63"/></svg></td>
+<td align="center"><img src="feature_stop_task/images/triangle_pink.svg" width="60"></td>
+<td align="center"><img src="feature_stop_task/images/star_pink.svg" width="60"></td>
 </tr>
 <tr>
 <td align="center"><strong>triangle</strong></td>
