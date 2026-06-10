@@ -26,10 +26,10 @@ footprint.
 
 <table>
 <tr>
-<td align="center"><img src="feature_stop_task/images/circle_blue.png" width="60"></td>
-<td align="center"><img src="feature_stop_task/images/square_blue.png" width="60"></td>
-<td align="center"><img src="feature_stop_task/images/diamond_blue.png" width="60"></td>
-<td align="center"><img src="feature_stop_task/images/hexagon_blue.png" width="60"></td>
+<td align="center"><img src="feature_stop_task/images/circle_violet.png" width="60"></td>
+<td align="center"><img src="feature_stop_task/images/square_violet.png" width="60"></td>
+<td align="center"><img src="feature_stop_task/images/diamond_violet.png" width="60"></td>
+<td align="center"><img src="feature_stop_task/images/hexagon_violet.png" width="60"></td>
 </tr>
 <tr>
 <td align="center"><img src="feature_stop_task/images/circle_orange.png" width="60"></td>
@@ -38,7 +38,7 @@ footprint.
 <td align="center"><img src="feature_stop_task/images/hexagon_orange.png" width="60"></td>
 </tr>
 <tr>
-<td align="center" colspan="4"><em>blue / orange (feature block) — color is present but task-irrelevant</em></td>
+<td align="center" colspan="4"><em>violet / orange (feature block) — color is present but task-irrelevant</em></td>
 </tr>
 </table>
 
@@ -66,20 +66,39 @@ These shapes appear **only** in the conjunctive block and **never** in plain or
 feature. This ensures the (shape, color) AND-binding is learned fresh — there is
 no prior shape→key code to override or interfere with.
 
+### Color palette
+
+| Name    | Hex       | Block       |
+| ------- | --------- | ----------- |
+| violet  | `#7A12C9` | feature     |
+| orange  | `#FF8A1F` | feature     |
+| pink    | `#FF4D9E` | conjunctive |
+| cyan    | `#3FE0F0` | conjunctive |
+| neutral | `#e8e8e8` | plain       |
+
+Red, yellow, and green are excluded everywhere because of their stop/go
+associations; blue is excluded so cyan has no within-category neighbor
+("two kinds of blue"). The four hues were selected by maximizing the
+worst-case pairwise CIELAB ΔE across normal vision and simulated
+protanopia/deuteranopia/tritanopia (Machado et al., 2009): min-pair
+ΔE = 71 (normal), 34 (protan), 30 (deutan), 22 (tritan), on the task's
+`#707070` background. The set spreads colors in both hue and lightness, so
+pairs remain separable under any single dichromacy.
+
 ## Block conditions
 
 Each participant runs **three within-subjects blocks**, one per condition:
 
 - **plain** — 4 base shapes, neutral color; respond based on shape.
   Equivalent to the original simple stop task.
-- **feature** — 4 base shapes in blue or orange; color is task-irrelevant;
+- **feature** — 4 base shapes in violet or orange; color is task-irrelevant;
   respond based on shape (color is a perceptual distractor). Same shape→key
   map as plain.
 - **conjunctive** — triangle and cross in pink or cyan. Both shape AND
   color determine the correct key (XOR-like mapping). Because both the shapes
   and the colors are novel (never seen in plain/feature), the AND-binding cost
   is isolated from any proactive interference with the 4-shape→2-key mapping
-  or the blue/orange color code learned earlier.
+  or the violet/orange color code learned earlier.
 
 ## Key mapping: 4→2 pairing (plain & feature)
 

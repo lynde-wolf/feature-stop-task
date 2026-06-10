@@ -188,7 +188,7 @@ const getFeedback =
 
 var createTrialTypes = function (numTrialsPerBlock, blockCondition) {
   // Plain blocks use a single neutral-color stimulus; feature uses
-  // blue/orange; conjunctive uses its own dedicated shapes AND colors
+  // violet/orange; conjunctive uses its own dedicated shapes AND colors
   // (pink/cyan) so nothing from the plain/feature binding carries over.
   var stimColors = stimColorsForBlock(blockCondition);
   var blockShapes = shapesForBlock(blockCondition);
@@ -433,7 +433,7 @@ var keyMap = {};
 
 // All 3 within-subjects block conditions:
 //   - plain:       single neutral-color shapes; shape -> key
-//   - feature:     blue/orange shapes, color task-irrelevant; shape -> key
+//   - feature:     violet/orange shapes, color task-irrelevant; shape -> key
 //   - conjunctive: pink/cyan shapes, color task-relevant; (shape,color) -> key
 var blockConditions = ['plain', 'feature', 'conjunctive'];
 
@@ -535,7 +535,7 @@ function shapesForBlock(blockCondition) {
 }
 
 // Per-block stimulus colors. Plain is colorless (neutral); feature uses
-// blue/orange; conjunctive uses its own dedicated pink/cyan set so the
+// violet/orange; conjunctive uses its own dedicated pink/cyan set so the
 // color code, like the shape set, is learned fresh.
 function stimColorsForBlock(blockCondition) {
   if (blockCondition === 'plain') return [neutralColorKey];
@@ -554,21 +554,25 @@ if (
   blockOrder = [forcedBlockCondition];
 }
 
-// Feature-block colors: blue/orange — the classic high-contrast,
-// colorblind-safe pair. Blue is kept dark so it can't be confused with the
+// Feature-block colors: violet/orange — high contrast in both hue and
+// lightness (dark violet vs bright orange), so the pair survives all three
+// dichromacy types. Violet is kept dark so it can't be confused with the
 // conjunctive block's light cyan across blocks.
-var colors = ['blue', 'orange'];
-// Dedicated colors for the conjunctive block (mirrors conjShapes): pink
-// (magenta) and light cyan never appear in the feature block, so neither the
-// shape NOR the color code carries over from plain/feature into the
-// conjunctive binding. Red/yellow/green are avoided everywhere because of
-// their stop/go associations.
+var colors = ['violet', 'orange'];
+// Dedicated colors for the conjunctive block (mirrors conjShapes): pink and
+// light cyan never appear in the feature block, so neither the shape NOR the
+// color code carries over from plain/feature into the conjunctive binding.
+// Red/yellow/green are avoided everywhere because of their stop/go
+// associations. The 4 hexes were chosen by maximizing the worst-case pairwise
+// CIELAB ΔE across normal vision + protanopia/deuteranopia/tritanopia
+// (Machado et al., 2009 simulations): min-pair ΔE = 71 (normal), 34 (protan),
+// 30 (deutan), 22 (tritan).
 var conjColors = ['pink', 'cyan'];
 var colorHex = {
-  blue: '#1565c0',
-  orange: '#f57c00',
-  pink: '#d81b60',
-  cyan: '#4dd0e1',
+  violet: '#7A12C9',
+  orange: '#FF8A1F',
+  pink: '#FF4D9E',
+  cyan: '#3FE0F0',
   neutral: '#e8e8e8',
 };
 var neutralColorKey = 'neutral';
