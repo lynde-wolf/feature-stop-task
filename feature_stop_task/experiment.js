@@ -217,6 +217,73 @@ var createTrialTypes = function (numTrialsPerBlock, blockCondition) {
   return stims;
 };
 
+// Conjunctive-only practice builders (see conjPracticeLen comment).
+// One fresh 'go' trial object per (conjShape, color) combo — 4 total.
+var conjGoCombos = function () {
+  var combos = [];
+  for (var s = 0; s < conjShapes.length; s++) {
+    for (var c = 0; c < colors.length; c++) {
+      combos.push({
+        stim: conjShapes[s],
+        color: colors[c],
+        block_condition: 'conjunctive',
+        correct_response: getResponseForStim(conjShapes[s], colors[c]),
+        condition: 'go',
+      });
+    }
+  }
+  return combos;
+};
+
+// n go trials sampled with replacement from the 4 combos. Cloned so later
+// per-trial mutation (e.g. assigning stop conditions) can't alias.
+var sampleConjGo = function (n) {
+  return jsPsych.randomization
+    .sampleWithReplacement(conjGoCombos(), n)
+    .map(function (t) { return Object.assign({}, t); });
+};
+
+// Mandatory round 1 (no stop signals): the two combos mapped to the comma
+// key first, then the two mapped to the period key, then the remaining 6
+// shuffled (one more pass through all 4 combos + 2 random extras).
+var createConjGoRound1 = function () {
+  var combos = conjGoCombos();
+  var commaPair = combos.filter(function (t) {
+    return t.correct_response === ',';
+  });
+  var periodPair = combos.filter(function (t) {
+    return t.correct_response === '.';
+  });
+  var rest = shuffleArray(
+    conjGoCombos().concat(sampleConjGo(conjPracticeLen - 8))
+  );
+  return shuffleArray(commaPair).concat(shuffleArray(periodPair), rest);
+};
+
+// Mandatory round 2 (no stop signals): 10 fully shuffled go trials
+// (all 4 combos twice + 2 random extras).
+var createConjGoRound2 = function () {
+  return shuffleArray(
+    conjGoCombos().concat(conjGoCombos(), sampleConjGo(conjPracticeLen - 8))
+  );
+};
+
+// Looped practice rounds (after the stop-signal instructions): stimuli
+// randomly sampled (not balanced), with ~1/3 stop trials shuffled in.
+var createConjStopRound = function () {
+  var nStop = Math.round(conjPracticeLen / 3);
+  var conds = [];
+  for (var i = 0; i < conjPracticeLen; i++) {
+    conds.push(i < nStop ? 'stop' : 'go');
+  }
+  conds = shuffleArray(conds);
+  var trials = sampleConjGo(conjPracticeLen);
+  for (var j = 0; j < trials.length; j++) {
+    trials[j].condition = conds[j];
+  }
+  return trials;
+};
+
 // Geometry shared by renderColoredShape and miniSvg. Returns the inner SVG
 // element string for a given shape, sized to a 160x160 viewBox.
 var shapeInnerSvg = function (shape, hex) {
@@ -239,11 +306,12 @@ var shapeInnerSvg = function (shape, hex) {
     // Equilateral-ish triangle, point up, fills the 120x120 bounding box.
     return '<polygon points="80,20 140,134 20,134" fill="' + hex + '"/>';
   }
-  if (shape === 'star') {
-    // 5-pointed star, outer radius 60, inner radius 28, centered at (80,80),
-    // top point up.
+  if (shape === 'cross') {
+    // Plus/cross, arm width 40, spanning the 120x120 bounding box. Chosen for
+    // the conjunctive block instead of a star so the stimulus is not confused
+    // with the star-shaped stop signal.
     return (
-      '<polygon points="80,20 97.62,65.78 145.27,67.42 107.94,97.34 121.38,143.18 80,118 38.62,143.18 52.06,97.34 14.73,67.42 62.38,65.78" fill="' +
+      '<polygon points="60,20 100,20 100,60 140,60 140,100 100,100 100,140 60,140 60,100 20,100 20,60 60,60" fill="' +
       hex +
       '"/>'
     );
@@ -317,6 +385,9 @@ var appendData = function (data) {
   data.current_trial = currentTrial;
   data.condition = stimData.condition;
   data.block_num = getExpStage() == 'practice' ? practiceCount : testCount;
+  // Conjunctive practice phase tag (null for plain/feature and for test).
+  data.practice_phase =
+    getExpStage() === 'practice' ? conjPracticePhase : null;
 
   if (data.condition == 'stop') {
     data.correct_trial = data.response === null ? 1 : 0;
@@ -350,11 +421,11 @@ var shapePairings = [
 // Dedicated shapes for the conjunctive block, NOT used in plain or feature.
 // This isolates the conjunctive AND-binding cost from any proactive
 // interference with a previously-learned shape -> key mapping.
-var conjShapes = ['triangle', 'star'];
-// pairOf-style mapping for conjunctive: triangle -> group 0, star -> group 1.
+var conjShapes = ['triangle', 'cross'];
+// pairOf-style mapping for conjunctive: triangle -> group 0, cross -> group 1.
 // Combined with color index via XOR inside getKeyMappingForTask, this gives
 // the 2-shape x 2-color -> 2-key conjunctive structure.
-var conjPairOf = { triangle: 0, star: 1 };
+var conjPairOf = { triangle: 0, cross: 1 };
 
 var possibleResponses;
 // keyMap[shape][color] -> key character.
@@ -457,7 +528,7 @@ if (pairingIdx < 0) pairingIdx += 3;
 var blockOrder = taskOrders[blockOrderIdx];
 
 // Per-block stim set. Plain & feature use the 4 base shapes; conjunctive uses
-// a dedicated 2-shape set (triangle, star) the participant never saw before,
+// a dedicated 2-shape set (triangle, cross) the participant never saw before,
 // so the (shape, color) AND-binding is learned fresh without proactive
 // interference from a previously-established shape -> key code.
 function shapesForBlock(blockCondition) {
@@ -522,6 +593,20 @@ var runAttentionChecks = true;
 
 // practiceLen: divisible by 12 (plain: 4 shapes x 3 stop conds) and 24 (feature/conjunctive: 8 stims x 3 stop conds)
 var practiceLen = 24;
+// Conjunctive block uses a deliberately-structured practice sequence instead
+// of the standard balanced practice:
+//   Round 1 (mandatory, NO stop signals): the two combos mapped to the comma
+//     key, then the two mapped to the period key, then the rest shuffled.
+//   Round 2 (mandatory, NO stop signals): conjPracticeLen fully shuffled go
+//     trials.
+//   Then a stop-signal (withhold-your-response) instruction screen, then
+//   looped practice rounds WITH stop signals until conjPracticeAccuracyThresh
+//   is reached, max practiceThresh (3) loops.
+var conjPracticeLen = 12;
+// Conjunctive loop gate uses experiment 2's go-accuracy inclusion bar (0.55)
+// rather than the 0.75 used for plain/feature: with only ~8 go trials per
+// round, 75% was too strict a gate.
+var conjPracticeAccuracyThresh = 0.55;
 // numTrialsPerBlock: same constraint. 72 -> 6 reps/combo in plain, 3 reps/combo in feature/conjunctive.
 var numTrialsPerBlock = 72;
 // numTestBlocks runs of testNode PER block condition. We loop the block
@@ -599,6 +684,15 @@ var promptTextList = '';
 var promptText = '';
 var ruleParagraphs = '';
 
+// Whether prompts/instructions mention the stop-signal star. False during the
+// conjunctive block's two mandatory no-stop practice rounds; flipped back to
+// true (with prompts rebuilt) right before the stop-signal instructions.
+var includeStopRule = true;
+// Tags conjunctive practice trials by phase for analysis:
+// 'no_stop_ordered' (round 1) / 'no_stop_shuffled' (round 2) /
+// 'with_stop' (looped rounds). null for plain/feature blocks.
+var conjPracticePhase = null;
+
 function buildPromptsForBlock(blockCondition) {
   currentBlockCondition = blockCondition;
   var stimColors =
@@ -629,7 +723,9 @@ function buildPromptsForBlock(blockCondition) {
       mappingLines[0].resp[2] + '</li>' +
     '<li>' + mappingLines[1].stims.join(' or ') + ': ' +
       mappingLines[1].resp[2] + '</li>' +
-    '<li>Do not respond if a star appears.</li>' +
+    (includeStopRule
+      ? '<li>Do not respond if a star appears.</li>'
+      : '') +
     '</ul>';
 
   promptText =
@@ -640,7 +736,9 @@ function buildPromptsForBlock(blockCondition) {
     '<p class="center-block-text" style="font-size:16px; line-height:80%;">' +
       mappingLines[1].stims.join(' or ') + ': ' +
       mappingLines[1].resp[2] + '</p>' +
-    '<p class="center-block-text" style="font-size:16px; line-height:80%;">Do not respond if a star appears.</p>' +
+    (includeStopRule
+      ? '<p class="center-block-text" style="font-size:16px; line-height:80%;">Do not respond if a star appears.</p>'
+      : '') +
     '</div>';
 
   var article = blockCondition === 'conjunctive' ? '' : 'a ';
@@ -749,25 +847,42 @@ function buildPageInstruct(blockCondition, blockIdx, totalBlocks) {
       'Both the <b>color</b> and the <b>shape</b> determine the correct response.';
   }
 
-  var pages = [
+  var rulePage =
     '<div class="centerbox">' +
-      blockHeading +
-      '<p class="block-text">Place your <b>index finger</b> on the <b>comma key (,)</b> and your <b>middle finger</b> on the <b>period key (.)</b></p>' +
-      '<p class="block-text">' + ruleDescription + '</p>' +
-      ruleParagraphs +
-      renderMappingPanel(90) +
-      '<p class="block-text">You should respond as quickly and accurately as possible.</p>' +
-      '</div>',
-    '<div class="centerbox">' +
-      '<p class="block-text">On some trials, a star will appear around the shape, with or shortly after the shape appears.</p>' +
-      '<p class="block-text">If you see the star, please try your best to <b>withhold your response</b> on that trial.</p>' +
-      '<p class="block-text">Please <b>do not</b> slow down your responses in order to wait for the star. It is equally important to respond quickly on trials without the star as it is to stop on trials with the star.</p>' +
-      '</div>',
-    '<div class="centerbox">' +
-      '<p class="block-text">We\'ll start with a short practice round for this block. During practice, you will receive feedback and a reminder of the rules. These will not count towards your performance on the task. Please make sure you understand the instructions before moving on.</p>' +
-      speedReminder +
-      '</div>',
-  ];
+    blockHeading +
+    '<p class="block-text">Place your <b>index finger</b> on the <b>comma key (,)</b> and your <b>middle finger</b> on the <b>period key (.)</b></p>' +
+    '<p class="block-text">' + ruleDescription + '</p>' +
+    ruleParagraphs +
+    renderMappingPanel(90) +
+    '<p class="block-text">You should respond as quickly and accurately as possible.</p>' +
+    '</div>';
+
+  var pages;
+  if (blockCondition === 'conjunctive') {
+    // No star page up front: the conjunctive block starts with two mandatory
+    // practice rounds WITHOUT stop signals; the withhold-your-response
+    // instructions are shown afterwards (conjStopInstructNode).
+    pages = [
+      rulePage,
+      '<div class="centerbox">' +
+        '<p class="block-text">We\'ll start with <b>two practice rounds</b> to learn the rule for this block. During practice, you will receive feedback and a reminder of the rules. These will not count towards your performance on the task. Please make sure you understand the instructions before moving on.</p>' +
+        speedReminder +
+        '</div>',
+    ];
+  } else {
+    pages = [
+      rulePage,
+      '<div class="centerbox">' +
+        '<p class="block-text">On some trials, a star will appear around the shape, with or shortly after the shape appears.</p>' +
+        '<p class="block-text">If you see the star, please try your best to <b>withhold your response</b> on that trial.</p>' +
+        '<p class="block-text">Please <b>do not</b> slow down your responses in order to wait for the star. It is equally important to respond quickly on trials without the star as it is to stop on trials with the star.</p>' +
+        '</div>',
+      '<div class="centerbox">' +
+        '<p class="block-text">We\'ll start with a short practice round for this block. During practice, you will receive feedback and a reminder of the rules. These will not count towards your performance on the task. Please make sure you understand the instructions before moving on.</p>' +
+        speedReminder +
+        '</div>',
+    ];
+  }
 
   // Mutate pageInstruct in place so the instructionsBlock's captured
   // reference picks up the new content.
@@ -781,6 +896,11 @@ function buildPageInstruct(blockCondition, blockIdx, totalBlocks) {
 function setupBlock(blockCondition, blockIdx, totalBlocks) {
   currentBlockCondition = blockCondition;
   getKeyMappingForTask(keyConfigIdx, blockCondition);
+  // Conjunctive starts with two no-stop rounds, so suppress the star line in
+  // prompts/instructions until conjStopPhaseSetup flips it back on.
+  includeStopRule = blockCondition !== 'conjunctive';
+  conjPracticePhase =
+    blockCondition === 'conjunctive' ? 'no_stop_ordered' : null;
   buildPromptsForBlock(blockCondition);
   buildPageInstruct(blockCondition, blockIdx, totalBlocks);
 
@@ -794,14 +914,22 @@ function setupBlock(blockCondition, blockIdx, totalBlocks) {
 
   // Pre-fill practice stims; testNode reseeds stims at the start of its
   // first iteration via its loop_function (after practice finishes).
-  stims = createTrialTypes(practiceLen, blockCondition);
+  // Conjunctive starts with mandatory no-stop round 1 (key-ordered).
+  stims =
+    blockCondition === 'conjunctive'
+      ? createConjGoRound1()
+      : createTrialTypes(practiceLen, blockCondition);
 
   // Reset the feedbackText shown by feedbackBlock at the start of practice
   // and test iterations.
   feedbackText =
-    '<div class="centerbox"><p class="center-block-text">' +
-    'Press <i>enter</i> to begin practice for block ' + (blockIdx + 1) +
-    ' of ' + totalBlocks + '.</p></div>';
+    blockCondition === 'conjunctive'
+      ? '<div class="centerbox"><p class="center-block-text">' +
+        'Press <i>enter</i> to begin the first practice round for block ' +
+        (blockIdx + 1) + ' of ' + totalBlocks + '.</p></div>'
+      : '<div class="centerbox"><p class="center-block-text">' +
+        'Press <i>enter</i> to begin practice for block ' + (blockIdx + 1) +
+        ' of ' + totalBlocks + '.</p></div>';
 }
 
 /* ************************************ */
@@ -967,97 +1095,105 @@ var ITIBlock = {
 /*				Set up nodes				*/
 /** ******************************************/
 
-var practiceTrials = [];
-for (i = 0; i < practiceLen; i++) {
-  var practiceTrial = {
-    type: jsPoldracklabStopSignal,
-    stimulus: getStim,
-    SS_stimulus: getStopStim,
-    SS_trial_type: getCondition,
-    data: {
-      trial_id: 'practice_trial',
+// Per-trial practice nodes. Defined once and pushed by reference into each
+// practice slot; jsPsych re-executes the same node definition fresh each time it
+// appears in a timeline, so a single shared reference is safe.
+var practiceTrial = {
+  type: jsPoldracklabStopSignal,
+  stimulus: getStim,
+  SS_stimulus: getStopStim,
+  SS_trial_type: getCondition,
+  data: {
+    trial_id: 'practice_trial',
+    exp_stage: 'practice',
+    trial_duration: stimTrialDuration,
+    stimulus_duration: stimStimulusDuration,
+  },
+  choices: choices,
+  correct_choice: getCorrectResponse,
+  stimulus_duration: stimStimulusDuration, // 1000
+  trial_duration: stimTrialDuration, // 1500
+  response_ends_trial: false,
+  SSD: getSSD,
+  SS_duration: 500, // 500
+  post_trial_gap: 0,
+  on_finish: function (data) {
+    appendData(data);
+  },
+  prompt: function () { return promptText; },
+};
+
+var practiceFeedbackBlock = {
+  type: jsPsychHtmlKeyboardResponse,
+  data: function () {
+    return {
       exp_stage: 'practice',
-      trial_duration: stimTrialDuration,
-      stimulus_duration: stimStimulusDuration,
-    },
-    choices: choices,
-    correct_choice: getCorrectResponse,
-    stimulus_duration: stimStimulusDuration, // 1000
-    trial_duration: stimTrialDuration, // 1500
-    response_ends_trial: false,
-    SSD: getSSD,
-    SS_duration: 500, // 500
-    post_trial_gap: 0,
-    on_finish: function (data) {
-      appendData(data);
-    },
-    prompt: function () { return promptText; },
-  };
-
-  var practiceFeedbackBlock = {
-    type: jsPsychHtmlKeyboardResponse,
-    data: function () {
-      return {
-        exp_stage: 'practice',
-        trial_id: 'practice_feedback',
-        trial_duration: 500,
-        stimulus_duration: 500,
-        block_num: practiceCount,
-      };
-    },
-    choices: ['NO_KEYS'],
-    stimulus: function () {
-      var last = jsPsych.data.get().last(1).trials[0];
-      if (last.condition == 'stop') {
-        if (last.response === null) {
-          return (
-            '<div class=center-box><div class=center-text><font size = 20>Correct!</font></div></div>' +
-            promptText
-          );
-        } else {
-          return (
-            '<div class=center-box><div class=center-text><font size = 20>There was a star</font></div></div>' +
-            promptText
-          );
-        }
+      trial_id: 'practice_feedback',
+      trial_duration: 500,
+      stimulus_duration: 500,
+      block_num: practiceCount,
+    };
+  },
+  choices: ['NO_KEYS'],
+  stimulus: function () {
+    var last = jsPsych.data.get().last(1).trials[0];
+    if (last.condition == 'stop') {
+      if (last.response === null) {
+        return (
+          '<div class=center-box><div class=center-text><font size = 20>Correct!</font></div></div>' +
+          promptText
+        );
       } else {
-        if (last.response == null) {
-          return (
-            '<div class=center-box><div class=center-text><font size = 20>Respond Faster!</font></div></div>' +
-            promptText
-          );
-        } else if (last.response === last.correct_response) {
-          return (
-            '<div class=center-box><div class=center-text><font size = 20>Correct!</font></div></div>' +
-            promptText
-          );
-        } else {
-          return (
-            '<div class=center-box><div class=center-text><font size = 20>Incorrect</font></div></div>' +
-            promptText
-          );
-        }
+        return (
+          '<div class=center-box><div class=center-text><font size = 20>There was a star</font></div></div>' +
+          promptText
+        );
       }
-    },
-    post_trial_gap: 0,
-    stimulus_duration: 500, // 500
-    trial_duration: 500, // 500
-    response_ends_trial: false,
-    prompt: function () { return promptText; },
-  };
+    } else {
+      if (last.response == null) {
+        return (
+          '<div class=center-box><div class=center-text><font size = 20>Respond Faster!</font></div></div>' +
+          promptText
+        );
+      } else if (last.response === last.correct_response) {
+        return (
+          '<div class=center-box><div class=center-text><font size = 20>Correct!</font></div></div>' +
+          promptText
+        );
+      } else {
+        return (
+          '<div class=center-box><div class=center-text><font size = 20>Incorrect</font></div></div>' +
+          promptText
+        );
+      }
+    }
+  },
+  post_trial_gap: 0,
+  stimulus_duration: 500, // 500
+  trial_duration: 500, // 500
+  response_ends_trial: false,
+  prompt: function () { return promptText; },
+};
 
-  practiceTrials.push(
-    practiceFixation,
-    practiceTrial,
-    practiceFeedbackBlock,
-    ITIBlock
-  );
+// Build an n-trial practice timeline: fixation -> stimulus -> feedback -> ITI.
+function buildPracticeTimeline(nTrials) {
+  var trials = [];
+  for (var i = 0; i < nTrials; i++) {
+    trials.push(practiceFixation, practiceTrial, practiceFeedbackBlock, ITIBlock);
+  }
+  return trials;
 }
 
+var practiceTrials = buildPracticeTimeline(practiceLen);
+// Conjunctive block: shorter, deliberately-structured practice (see
+// createConjPracticeStims / conjPracticeLen).
+var conjPracticeTrials = buildPracticeTimeline(conjPracticeLen);
+
 var practiceCount = 0;
-var practiceNode = {
-  timeline: [feedbackBlock].concat(practiceTrials),
-  loop_function: function (data) {
+// Shared loop_function for both the standard and the conjunctive practice nodes.
+// On a repeat it reseeds the practice stims using the right builder for the
+// current block; on success it seeds the test stims.
+var practiceLoopFunction = function (data) {
     practiceCount += 1;
     currentTrial = 0;
 
@@ -1099,9 +1235,16 @@ var practiceNode = {
     var aveShapeRespondCorrect = sumGoCorrect / goLength;
     var stopSignalRespond = numStopResponses / stopLength;
 
+    // Conjunctive rounds are short (~8 go trials), so they gate on the lower
+    // experiment-2 accuracy bar instead of the 0.75 used for plain/feature.
+    var accThresh =
+      currentBlockCondition === 'conjunctive'
+        ? conjPracticeAccuracyThresh
+        : practiceAccuracyThresh;
+
     if (
       practiceCount == practiceThresh ||
-      aveShapeRespondCorrect > practiceAccuracyThresh
+      aveShapeRespondCorrect > accThresh
     ) {
       feedbackText = `
       <div class="centerbox">
@@ -1117,7 +1260,7 @@ var practiceNode = {
       feedbackText =
         '<div class = centerbox><p class = block-text>Please take this time to read your feedback! This screen will advance automatically in 1 minute.</p>';
 
-      if (aveShapeRespondCorrect <= practiceAccuracyThresh) {
+      if (aveShapeRespondCorrect <= accThresh) {
         feedbackText += `
         <p class="block-text">Your accuracy is low. Remember:</p>
         ${promptTextList}`;
@@ -1149,10 +1292,87 @@ var practiceNode = {
         `<p class="block-text">We are now going to repeat the practice round.</p>` +
         `<p class="block-text">Press <i>enter</i> to begin.</p></div>`;
 
-      stims = createTrialTypes(practiceLen, currentBlockCondition);
+      stims =
+        currentBlockCondition === 'conjunctive'
+          ? createConjStopRound()
+          : createTrialTypes(practiceLen, currentBlockCondition);
       return true;
     }
+};
+
+// Standard practice node (plain & feature blocks): full balanced practice set.
+var practiceNode = {
+  timeline: [feedbackBlock].concat(practiceTrials),
+  loop_function: practiceLoopFunction,
+};
+// Conjunctive practice sequence (see conjPracticeLen comment):
+// Mandatory round 1: no stop signals, key-ordered first 4 (stims seeded by
+// setupBlock). Single pass, no loop.
+var conjNoStopNode1 = {
+  timeline: [feedbackBlock].concat(conjPracticeTrials),
+};
+
+// Between rounds 1 and 2: reseed with the fully-shuffled no-stop set.
+var conjRound2Setup = {
+  type: jsPsychCallFunction,
+  func: function () {
+    conjPracticePhase = 'no_stop_shuffled';
+    stims = createConjGoRound2();
+    feedbackText =
+      '<div class="centerbox">' +
+      '<p class="center-block-text">Next is a second practice round with the same rule. The shapes will appear in a mixed order.</p>' +
+      '<p class="center-block-text">Press <i>enter</i> to begin.</p>' +
+      '</div>';
   },
+};
+
+// Mandatory round 2: no stop signals, fully shuffled. Single pass, no loop.
+var conjNoStopNode2 = {
+  timeline: [feedbackBlock].concat(conjPracticeTrials),
+};
+
+// After round 2: turn the star rule back on, rebuild prompts, and seed the
+// first looped round (with stop signals).
+var conjStopPhaseSetup = {
+  type: jsPsychCallFunction,
+  func: function () {
+    includeStopRule = true;
+    conjPracticePhase = 'with_stop';
+    buildPromptsForBlock('conjunctive');
+    stims = createConjStopRound();
+    feedbackText =
+      '<div class="centerbox">' +
+      '<p class="center-block-text">Practice will now include star trials.</p>' +
+      '<p class="center-block-text">Press <i>enter</i> to begin.</p>' +
+      '</div>';
+  },
+};
+
+// Stop-signal (withhold-your-response) instructions, shown only after the two
+// mandatory no-stop rounds.
+var conjStopInstructNode = {
+  type: jsPsychInstructions,
+  data: {
+    trial_id: 'instructions',
+    trial_duration: null,
+  },
+  pages: [
+    '<div class="centerbox">' +
+      '<p class="block-text">From now on, on some trials a star will appear around the shape, with or shortly after the shape appears.</p>' +
+      '<p class="block-text">If you see the star, please try your best to <b>withhold your response</b> on that trial.</p>' +
+      '<p class="block-text">Please <b>do not</b> slow down your responses in order to wait for the star. It is equally important to respond quickly on trials without the star as it is to stop on trials with the star.</p>' +
+      '<p class="block-text">The next practice rounds will include star trials.</p>' +
+      '</div>',
+  ],
+  allow_keys: false,
+  show_clickable_nav: true,
+};
+
+// Looped conjunctive practice WITH stop signals: repeats until 75% go accuracy
+// (practiceAccuracyThresh) or practiceThresh (3) rounds, like the other blocks.
+var conjPracticeNode = {
+  timeline: [feedbackBlock].concat(conjPracticeTrials),
+  loop_function: practiceLoopFunction,
 };
 
 var testTrials = [];
@@ -1384,8 +1604,19 @@ var feature_stop_task_init = () => {
       });
       // Block-specific instructions (mutated pageInstruct content).
       feature_stop_task_experiment.push(instructionNode);
-      // Per-block practice (loops on its own until accuracy threshold).
-      feature_stop_task_experiment.push(practiceNode);
+      // Per-block practice. Plain/feature: one looping practice node.
+      // Conjunctive: two mandatory no-stop rounds, then the stop-signal
+      // instructions, then the looping practice with stop signals.
+      if (blockOrder[idx] === 'conjunctive') {
+        feature_stop_task_experiment.push(conjNoStopNode1);
+        feature_stop_task_experiment.push(conjRound2Setup);
+        feature_stop_task_experiment.push(conjNoStopNode2);
+        feature_stop_task_experiment.push(conjStopPhaseSetup);
+        feature_stop_task_experiment.push(conjStopInstructNode);
+        feature_stop_task_experiment.push(conjPracticeNode);
+      } else {
+        feature_stop_task_experiment.push(practiceNode);
+      }
       // One test block under this block condition.
       feature_stop_task_experiment.push(testNode);
       // After testNode's loop terminates, its loop_function has set

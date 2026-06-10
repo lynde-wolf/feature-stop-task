@@ -47,15 +47,15 @@ footprint.
 <table>
 <tr>
 <td align="center"><img src="feature_stop_task/images/triangle_blue.png" width="60"></td>
-<td align="center"><img src="feature_stop_task/images/star_blue.png" width="60"></td>
+<td align="center"><img src="feature_stop_task/images/cross_blue.png" width="60"></td>
 </tr>
 <tr>
 <td align="center"><img src="feature_stop_task/images/triangle_pink.png" width="60"></td>
-<td align="center"><img src="feature_stop_task/images/star_pink.png" width="60"></td>
+<td align="center"><img src="feature_stop_task/images/cross_pink.png" width="60"></td>
 </tr>
 <tr>
 <td align="center"><strong>triangle</strong></td>
-<td align="center"><strong>star</strong></td>
+<td align="center"><strong>cross</strong></td>
 </tr>
 <tr>
 <td align="center" colspan="2"><em>blue / pink — both shape AND color determine the response (XOR rule)</em></td>
@@ -75,7 +75,7 @@ Each participant runs **three within-subjects blocks**, one per condition:
 - **feature** — 4 base shapes in blue or pink; color is task-irrelevant;
   respond based on shape (color is a perceptual distractor). Same shape→key
   map as plain.
-- **conjunctive** — triangle and star in blue or pink. Both shape AND color
+- **conjunctive** — triangle and cross in blue or pink. Both shape AND color
   determine the correct key (XOR-like mapping). Because these are novel shapes,
   the AND-binding cost is isolated from any proactive interference with the
   4-shape→2-key mapping learned in plain/feature.
@@ -97,14 +97,14 @@ shape→key binding in both the plain and feature blocks.
 
 ### Conjunctive key mapping
 
-Triangle and star use the same two keys (`,` / `.`) but with an XOR-like rule:
+Triangle and cross use the same two keys (`,` / `.`) but with an XOR-like rule:
 
 | Stimulus          | Key   |
 | ----------------- | ----- |
 | blue triangle     | `,`   |
 | pink triangle     | `.`   |
-| blue star         | `.`   |
-| pink star         | `,`   |
+| blue cross        | `.`   |
+| pink cross        | `,`   |
 
 (Flipped when `keyConfigIdx = 1`.)
 
@@ -121,7 +121,7 @@ and shape pairing. 36 cells = 6 block orders × 2 key configs × 3 pairings.
 
 Saved per trial: `group_index`, `block_order_idx`, `key_config_idx`,
 `pairing_idx`, `shape_pairing` (e.g. `"circle+square_vs_diamond+hexagon"`),
-`conj_shapes` (`"triangle+star"`), `block_condition`, `block_order`.
+`conj_shapes` (`"triangle+cross"`), `block_condition`, `block_order`.
 
 ## Timeline per block
 
@@ -131,7 +131,28 @@ For each block in `blockOrder`:
    instructions; resets practice/test counters and SSD)
 2. block-specific instructions (rule + visual stim→key mapping panel +
    stop-signal explanation + practice intro)
-3. per-block practice (loops until accuracy threshold or `practiceThresh`)
+3. per-block practice
+   - **plain / feature**: standard 24-trial balanced practice (`practiceLen`),
+     looping until accuracy threshold or `practiceThresh`. The block
+     instructions include the stop-signal (star) page up front.
+   - **conjunctive**: a structured sequence of 12-trial rounds
+     (`conjPracticeLen`); the star is not mentioned until step (c):
+     1. **Mandatory round 1, no stop signals** (`createConjGoRound1`): the two
+        (shape, color) combos mapped to the comma key, then the two mapped to
+        the period key, then the remaining 8 go trials shuffled.
+     2. **Mandatory round 2, no stop signals** (`createConjGoRound2`): 12
+        fully shuffled go trials.
+     3. **Stop-signal instructions** (withhold-your-response page), shown only
+        now; the "Do not respond if a star appears" prompt line also appears
+        from this point on.
+     4. **Looped practice with stop signals** (`createConjStopRound`): 12
+        randomly sampled trials with ~1/3 stop trials, looping until go
+        accuracy exceeds `conjPracticeAccuracyThresh` (0.55 — experiment 2's
+        go-accuracy inclusion bar) or `practiceThresh` (3) rounds. Plain and
+        feature practice keeps the stricter 0.75 gate.
+     Practice trials carry a `practice_phase` data field
+     (`no_stop_ordered` / `no_stop_shuffled` / `with_stop`; null in
+     plain/feature).
 4. one test block (72 trials, 33% stop)
 5. between-block feedback (or end-of-task message after the final block)
 
