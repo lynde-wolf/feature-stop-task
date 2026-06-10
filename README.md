@@ -32,13 +32,13 @@ footprint.
 <td align="center"><img src="feature_stop_task/images/hexagon_blue.png" width="60"></td>
 </tr>
 <tr>
-<td align="center"><img src="feature_stop_task/images/circle_pink.png" width="60"></td>
-<td align="center"><img src="feature_stop_task/images/square_pink.png" width="60"></td>
-<td align="center"><img src="feature_stop_task/images/diamond_pink.png" width="60"></td>
-<td align="center"><img src="feature_stop_task/images/hexagon_pink.png" width="60"></td>
+<td align="center"><img src="feature_stop_task/images/circle_orange.png" width="60"></td>
+<td align="center"><img src="feature_stop_task/images/square_orange.png" width="60"></td>
+<td align="center"><img src="feature_stop_task/images/diamond_orange.png" width="60"></td>
+<td align="center"><img src="feature_stop_task/images/hexagon_orange.png" width="60"></td>
 </tr>
 <tr>
-<td align="center" colspan="4"><em>blue / pink (feature block) — color is present but task-irrelevant</em></td>
+<td align="center" colspan="4"><em>blue / orange (feature block) — color is present but task-irrelevant</em></td>
 </tr>
 </table>
 
@@ -46,19 +46,19 @@ footprint.
 
 <table>
 <tr>
-<td align="center"><img src="feature_stop_task/images/triangle_blue.png" width="60"></td>
-<td align="center"><img src="feature_stop_task/images/cross_blue.png" width="60"></td>
-</tr>
-<tr>
 <td align="center"><img src="feature_stop_task/images/triangle_pink.png" width="60"></td>
 <td align="center"><img src="feature_stop_task/images/cross_pink.png" width="60"></td>
+</tr>
+<tr>
+<td align="center"><img src="feature_stop_task/images/triangle_cyan.png" width="60"></td>
+<td align="center"><img src="feature_stop_task/images/cross_cyan.png" width="60"></td>
 </tr>
 <tr>
 <td align="center"><strong>triangle</strong></td>
 <td align="center"><strong>cross</strong></td>
 </tr>
 <tr>
-<td align="center" colspan="2"><em>blue / pink — both shape AND color determine the response (XOR rule)</em></td>
+<td align="center" colspan="2"><em>pink / cyan — both shape AND color determine the response (XOR rule); these colors, like the shapes, never appear in the other blocks</em></td>
 </tr>
 </table>
 
@@ -72,13 +72,14 @@ Each participant runs **three within-subjects blocks**, one per condition:
 
 - **plain** — 4 base shapes, neutral color; respond based on shape.
   Equivalent to the original simple stop task.
-- **feature** — 4 base shapes in blue or pink; color is task-irrelevant;
+- **feature** — 4 base shapes in blue or orange; color is task-irrelevant;
   respond based on shape (color is a perceptual distractor). Same shape→key
   map as plain.
-- **conjunctive** — triangle and cross in blue or pink. Both shape AND color
-  determine the correct key (XOR-like mapping). Because these are novel shapes,
-  the AND-binding cost is isolated from any proactive interference with the
-  4-shape→2-key mapping learned in plain/feature.
+- **conjunctive** — triangle and cross in pink or cyan. Both shape AND
+  color determine the correct key (XOR-like mapping). Because both the shapes
+  and the colors are novel (never seen in plain/feature), the AND-binding cost
+  is isolated from any proactive interference with the 4-shape→2-key mapping
+  or the blue/orange color code learned earlier.
 
 ## Key mapping: 4→2 pairing (plain & feature)
 
@@ -101,10 +102,10 @@ Triangle and cross use the same two keys (`,` / `.`) but with an XOR-like rule:
 
 | Stimulus          | Key   |
 | ----------------- | ----- |
-| blue triangle     | `,`   |
-| pink triangle     | `.`   |
-| blue cross        | `.`   |
-| pink cross        | `,`   |
+| pink triangle     | `,`   |
+| cyan triangle     | `.`   |
+| pink cross        | `.`   |
+| cyan cross        | `,`   |
 
 (Flipped when `keyConfigIdx = 1`.)
 
@@ -121,7 +122,8 @@ and shape pairing. 36 cells = 6 block orders × 2 key configs × 3 pairings.
 
 Saved per trial: `group_index`, `block_order_idx`, `key_config_idx`,
 `pairing_idx`, `shape_pairing` (e.g. `"circle+square_vs_diamond+hexagon"`),
-`conj_shapes` (`"triangle+cross"`), `block_condition`, `block_order`.
+`conj_shapes` (`"triangle+cross"`), `conj_colors` (`"pink+cyan"`),
+`block_condition`, `block_order`.
 
 ## Timeline per block
 

@@ -187,11 +187,10 @@ const getFeedback =
     </font></p></div></div>`;
 
 var createTrialTypes = function (numTrialsPerBlock, blockCondition) {
-  // Plain blocks use a single neutral-color stimulus; feature & conjunctive
-  // blocks span both colors. Conjunctive uses only a 2-shape subset so the
-  // shape -> key binding from plain/feature carries over without relearning.
-  var stimColors =
-    blockCondition === 'plain' ? [neutralColorKey] : colors;
+  // Plain blocks use a single neutral-color stimulus; feature uses
+  // blue/orange; conjunctive uses its own dedicated shapes AND colors
+  // (pink/cyan) so nothing from the plain/feature binding carries over.
+  var stimColors = stimColorsForBlock(blockCondition);
   var blockShapes = shapesForBlock(blockCondition);
 
   var uniqueCombos =
@@ -222,12 +221,12 @@ var createTrialTypes = function (numTrialsPerBlock, blockCondition) {
 var conjGoCombos = function () {
   var combos = [];
   for (var s = 0; s < conjShapes.length; s++) {
-    for (var c = 0; c < colors.length; c++) {
+    for (var c = 0; c < conjColors.length; c++) {
       combos.push({
         stim: conjShapes[s],
-        color: colors[c],
+        color: conjColors[c],
         block_condition: 'conjunctive',
-        correct_response: getResponseForStim(conjShapes[s], colors[c]),
+        correct_response: getResponseForStim(conjShapes[s], conjColors[c]),
         condition: 'go',
       });
     }
@@ -434,8 +433,8 @@ var keyMap = {};
 
 // All 3 within-subjects block conditions:
 //   - plain:       single neutral-color shapes; shape -> key
-//   - feature:     blue/pink shapes, color task-irrelevant; shape -> key
-//   - conjunctive: blue/pink shapes, color task-relevant; (shape,color) -> key
+//   - feature:     blue/orange shapes, color task-irrelevant; shape -> key
+//   - conjunctive: pink/cyan shapes, color task-relevant; (shape,color) -> key
 var blockConditions = ['plain', 'feature', 'conjunctive'];
 
 // 6 permutations of the 3 conditions (full block-order counterbalancing).
@@ -497,11 +496,11 @@ function getKeyMappingForTask(keyConfigIdx, blockCondition) {
     }
   } else {
     // conjunctive: AND-binding over (shape, color) using the dedicated
-    // conjShapes set. pair XOR color.
+    // conjShapes and conjColors sets. pair XOR color.
     for (var s4 = 0; s4 < conjShapes.length; s4++) {
-      for (var c2 = 0; c2 < colors.length; c2++) {
+      for (var c2 = 0; c2 < conjColors.length; c2++) {
         var keyIdx = conjPairOf[conjShapes[s4]] ^ c2;
-        keyMap[conjShapes[s4]][colors[c2]] = possibleResponses[keyIdx][1];
+        keyMap[conjShapes[s4]][conjColors[c2]] = possibleResponses[keyIdx][1];
       }
     }
   }
@@ -535,6 +534,14 @@ function shapesForBlock(blockCondition) {
   return blockCondition === 'conjunctive' ? conjShapes : shapes;
 }
 
+// Per-block stimulus colors. Plain is colorless (neutral); feature uses
+// blue/orange; conjunctive uses its own dedicated pink/cyan set so the
+// color code, like the shape set, is learned fresh.
+function stimColorsForBlock(blockCondition) {
+  if (blockCondition === 'plain') return [neutralColorKey];
+  return blockCondition === 'conjunctive' ? conjColors : colors;
+}
+
 // Optional: allow URL/efVars to force a single block condition (for piloting).
 var forcedBlockCondition =
   typeof window.efVars !== 'undefined' && window.efVars.task_type
@@ -547,8 +554,23 @@ if (
   blockOrder = [forcedBlockCondition];
 }
 
-var colors = ['blue', 'pink'];
-var colorHex = { blue: '#1976d2', pink: '#e91e63', neutral: '#e8e8e8' };
+// Feature-block colors: blue/orange — the classic high-contrast,
+// colorblind-safe pair. Blue is kept dark so it can't be confused with the
+// conjunctive block's light cyan across blocks.
+var colors = ['blue', 'orange'];
+// Dedicated colors for the conjunctive block (mirrors conjShapes): pink
+// (magenta) and light cyan never appear in the feature block, so neither the
+// shape NOR the color code carries over from plain/feature into the
+// conjunctive binding. Red/yellow/green are avoided everywhere because of
+// their stop/go associations.
+var conjColors = ['pink', 'cyan'];
+var colorHex = {
+  blue: '#1565c0',
+  orange: '#f57c00',
+  pink: '#d81b60',
+  cyan: '#4dd0e1',
+  neutral: '#e8e8e8',
+};
 var neutralColorKey = 'neutral';
 var color = null;
 
@@ -670,7 +692,7 @@ var images = [pathSource + 'stopSignal.png'];
 // Per-block label for a (shape,color) stim.
 //   plain:       just the shape name ("circle" / "square")
 //   feature:     shape name (color shown but ignored by the rule)
-//   conjunctive: "blue circle", "pink square", etc.
+//   conjunctive: "pink triangle", "cyan cross", etc.
 var labelFor = function (shape, color) {
   if (currentBlockCondition === 'conjunctive') return color + ' ' + shape;
   return shape;
@@ -695,8 +717,7 @@ var conjPracticePhase = null;
 
 function buildPromptsForBlock(blockCondition) {
   currentBlockCondition = blockCondition;
-  var stimColors =
-    blockCondition === 'plain' ? [neutralColorKey] : colors;
+  var stimColors = stimColorsForBlock(blockCondition);
 
   // Group stim labels by the key they map to.
   var byKey = [
@@ -774,8 +795,7 @@ var renderMappingPanel = function (size) {
     );
   };
 
-  var stimColors =
-    currentBlockCondition === 'plain' ? [neutralColorKey] : colors;
+  var stimColors = stimColorsForBlock(currentBlockCondition);
   var panelShapes = shapesForBlock(currentBlockCondition);
   var rowHtml = function (bucket) {
     // List the unique (shape,color) pairs that map to this bucket's key.
@@ -1586,6 +1606,7 @@ var feature_stop_task_init = () => {
       .map(function (g) { return g.join('+'); })
       .join('_vs_'),
     conj_shapes: conjShapes.join('+'),
+    conj_colors: conjColors.join('+'),
     block_order: blockOrder.join('_'),
   });
 
