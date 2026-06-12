@@ -17,7 +17,7 @@ footprint.
 <td align="center"><strong>circle</strong><br><img src="feature_stop_task/images/circle_neutral.png" width="80"></td>
 <td align="center"><strong>square</strong><br><img src="feature_stop_task/images/square_neutral.png" width="80"></td>
 <td align="center"><strong>diamond</strong><br><img src="feature_stop_task/images/diamond_neutral.png" width="80"></td>
-<td align="center"><strong>hexagon</strong><br><img src="feature_stop_task/images/hexagon_neutral.png" width="80"></td>
+<td align="center"><strong>pentagon</strong><br><img src="feature_stop_task/images/pentagon_neutral.png" width="80"></td>
 </tr>
 <tr>
 <td align="center" colspan="4"><em>neutral (plain block)</em></td>
@@ -29,13 +29,13 @@ footprint.
 <td align="center"><img src="feature_stop_task/images/circle_violet.png" width="60"></td>
 <td align="center"><img src="feature_stop_task/images/square_violet.png" width="60"></td>
 <td align="center"><img src="feature_stop_task/images/diamond_violet.png" width="60"></td>
-<td align="center"><img src="feature_stop_task/images/hexagon_violet.png" width="60"></td>
+<td align="center"><img src="feature_stop_task/images/pentagon_violet.png" width="60"></td>
 </tr>
 <tr>
 <td align="center"><img src="feature_stop_task/images/circle_orange.png" width="60"></td>
 <td align="center"><img src="feature_stop_task/images/square_orange.png" width="60"></td>
 <td align="center"><img src="feature_stop_task/images/diamond_orange.png" width="60"></td>
-<td align="center"><img src="feature_stop_task/images/hexagon_orange.png" width="60"></td>
+<td align="center"><img src="feature_stop_task/images/pentagon_orange.png" width="60"></td>
 </tr>
 <tr>
 <td align="center" colspan="4"><em>violet / orange (feature block) — color is present but task-irrelevant</em></td>
@@ -58,7 +58,7 @@ footprint.
 <td align="center"><strong>cross</strong></td>
 </tr>
 <tr>
-<td align="center" colspan="2"><em>pink / cyan — both shape AND color determine the response (XOR rule); these colors, like the shapes, never appear in the other blocks</em></td>
+<td align="center" colspan="2"><em>pink / blue — both shape AND color determine the response (XOR rule); these colors, like the shapes, never appear in the other blocks</em></td>
 </tr>
 </table>
 
@@ -73,12 +73,15 @@ no prior shape→key code to override or interfere with.
 | violet  | `#7A12C9` | feature     |
 | orange  | `#FF8A1F` | feature     |
 | pink    | `#FF4D9E` | conjunctive |
-| cyan    | `#3FE0F0` | conjunctive |
+| blue    | `#3FE0F0` | conjunctive |
 | neutral | `#e8e8e8` | plain       |
 
 Red, yellow, and green are excluded everywhere because of their stop/go
-associations; blue is excluded so cyan has no within-category neighbor
-("two kinds of blue"). The four hues were selected by maximizing the
+associations. The conjunctive "blue" is a light cyan hue (`#3FE0F0`); no
+darker blue appears anywhere else in the palette, so it has no
+within-category neighbor ("two kinds of blue"). In all participant-facing
+text and in the data it is labeled simply **blue** (image files keep their
+original `*_cyan.png` names). The four hues were selected by maximizing the
 worst-case pairwise CIELAB ΔE across normal vision and simulated
 protanopia/deuteranopia/tritanopia (Machado et al., 2009): min-pair
 ΔE = 71 (normal), 34 (protan), 30 (deutan), 22 (tritan), on the task's
@@ -94,7 +97,7 @@ Each participant runs **three within-subjects blocks**, one per condition:
 - **feature** — 4 base shapes in violet or orange; color is task-irrelevant;
   respond based on shape (color is a perceptual distractor). Same shape→key
   map as plain.
-- **conjunctive** — triangle and cross in pink or cyan. Both shape AND
+- **conjunctive** — triangle and cross in pink or blue. Both shape AND
   color determine the correct key (XOR-like mapping). Because both the shapes
   and the colors are novel (never seen in plain/feature), the AND-binding cost
   is isolated from any proactive interference with the 4-shape→2-key mapping
@@ -108,9 +111,9 @@ across participants:
 
 | Pairing | Key A shapes         | Key B shapes          |
 | ------- | -------------------- | --------------------- |
-| 1       | circle, square       | diamond, hexagon      |
-| 2       | circle, diamond      | square, hexagon       |
-| 3       | circle, hexagon      | square, diamond       |
+| 1       | circle, square       | diamond, pentagon     |
+| 2       | circle, diamond      | square, pentagon      |
+| 3       | circle, pentagon     | square, diamond       |
 
 The pairing is **fixed for the entire session**: a participant sees the same
 shape→key binding in both the plain and feature blocks.
@@ -122,9 +125,9 @@ Triangle and cross use the same two keys (`,` / `.`) but with an XOR-like rule:
 | Stimulus          | Key   |
 | ----------------- | ----- |
 | pink triangle     | `,`   |
-| cyan triangle     | `.`   |
+| blue triangle     | `.`   |
 | pink cross        | `.`   |
-| cyan cross        | `,`   |
+| blue cross        | `,`   |
 
 (Flipped when `keyConfigIdx = 1`.)
 
@@ -140,8 +143,8 @@ and shape pairing. 36 cells = 6 block orders × 2 key configs × 3 pairings.
 | pairingIdx      | `⌊(gi − 1) / 12⌋ % 3`                    | 0–2   |
 
 Saved per trial: `group_index`, `block_order_idx`, `key_config_idx`,
-`pairing_idx`, `shape_pairing` (e.g. `"circle+square_vs_diamond+hexagon"`),
-`conj_shapes` (`"triangle+cross"`), `conj_colors` (`"pink+cyan"`),
+`pairing_idx`, `shape_pairing` (e.g. `"circle+square_vs_diamond+pentagon"`),
+`conj_shapes` (`"triangle+cross"`), `conj_colors` (`"pink+blue"`),
 `block_condition`, `block_order`.
 
 ## Timeline per block

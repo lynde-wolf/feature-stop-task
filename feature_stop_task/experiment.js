@@ -189,7 +189,7 @@ const getFeedback =
 var createTrialTypes = function (numTrialsPerBlock, blockCondition) {
   // Plain blocks use a single neutral-color stimulus; feature uses
   // violet/orange; conjunctive uses its own dedicated shapes AND colors
-  // (pink/cyan) so nothing from the plain/feature binding carries over.
+  // (pink/blue) so nothing from the plain/feature binding carries over.
   var stimColors = stimColorsForBlock(blockCondition);
   var blockShapes = shapesForBlock(blockCondition);
 
@@ -293,10 +293,10 @@ var shapeInnerSvg = function (shape, hex) {
     // Square rotated 45deg, same bounding box as the square stimulus.
     return '<polygon points="80,20 140,80 80,140 20,80" fill="' + hex + '"/>';
   }
-  if (shape === 'hexagon') {
-    // Regular hexagon, flat-top, circumradius 60 (matches circle).
+  if (shape === 'pentagon') {
+    // Regular pentagon, point-up, circumradius 60 (matches circle).
     return (
-      '<polygon points="50,28 110,28 140,80 110,132 50,132 20,80" fill="' +
+      '<polygon points="80,20 137.1,61.5 115.3,128.5 44.7,128.5 22.9,61.5" fill="' +
       hex +
       '"/>'
     );
@@ -405,16 +405,16 @@ var appendData = function (data) {
 /* ************************************ */
 const fixationDuration = 500;
 
-var shapes = ['circle', 'square', 'diamond', 'hexagon'];
+var shapes = ['circle', 'square', 'diamond', 'pentagon'];
 
 // Three disjoint pairings of the 4 shapes into two response-key groups.
 // Counterbalanced across participants via group_index. The active pairing is
 // fixed for the whole session, so plain and feature blocks share the same
 // shape -> key map (no relearning across blocks).
 var shapePairings = [
-  [['circle', 'square'], ['diamond', 'hexagon']],
-  [['circle', 'diamond'], ['square', 'hexagon']],
-  [['circle', 'hexagon'], ['square', 'diamond']],
+  [['circle', 'square'], ['diamond', 'pentagon']],
+  [['circle', 'diamond'], ['square', 'pentagon']],
+  [['circle', 'pentagon'], ['square', 'diamond']],
 ];
 
 // Dedicated shapes for the conjunctive block, NOT used in plain or feature.
@@ -434,7 +434,7 @@ var keyMap = {};
 // All 3 within-subjects block conditions:
 //   - plain:       single neutral-color shapes; shape -> key
 //   - feature:     violet/orange shapes, color task-irrelevant; shape -> key
-//   - conjunctive: pink/cyan shapes, color task-relevant; (shape,color) -> key
+//   - conjunctive: pink/blue shapes, color task-relevant; (shape,color) -> key
 var blockConditions = ['plain', 'feature', 'conjunctive'];
 
 // 6 permutations of the 3 conditions (full block-order counterbalancing).
@@ -535,7 +535,7 @@ function shapesForBlock(blockCondition) {
 }
 
 // Per-block stimulus colors. Plain is colorless (neutral); feature uses
-// violet/orange; conjunctive uses its own dedicated pink/cyan set so the
+// violet/orange; conjunctive uses its own dedicated pink/blue set so the
 // color code, like the shape set, is learned fresh.
 function stimColorsForBlock(blockCondition) {
   if (blockCondition === 'plain') return [neutralColorKey];
@@ -557,22 +557,22 @@ if (
 // Feature-block colors: violet/orange — high contrast in both hue and
 // lightness (dark violet vs bright orange), so the pair survives all three
 // dichromacy types. Violet is kept dark so it can't be confused with the
-// conjunctive block's light cyan across blocks.
+// conjunctive block's light blue across blocks.
 var colors = ['violet', 'orange'];
 // Dedicated colors for the conjunctive block (mirrors conjShapes): pink and
-// light cyan never appear in the feature block, so neither the shape NOR the
+// light blue never appear in the feature block, so neither the shape NOR the
 // color code carries over from plain/feature into the conjunctive binding.
 // Red/yellow/green are avoided everywhere because of their stop/go
 // associations. The 4 hexes were chosen by maximizing the worst-case pairwise
 // CIELAB ΔE across normal vision + protanopia/deuteranopia/tritanopia
 // (Machado et al., 2009 simulations): min-pair ΔE = 71 (normal), 34 (protan),
 // 30 (deutan), 22 (tritan).
-var conjColors = ['pink', 'cyan'];
+var conjColors = ['pink', 'blue'];
 var colorHex = {
   violet: '#7A12C9',
   orange: '#FF8A1F',
   pink: '#FF4D9E',
-  cyan: '#3FE0F0',
+  blue: '#3FE0F0',
   neutral: '#e8e8e8',
 };
 var neutralColorKey = 'neutral';
@@ -617,7 +617,7 @@ var sumInstructTime = 0; // ms
 var instructTimeThresh = 5; // /in seconds
 var runAttentionChecks = true;
 
-// practiceLen: divisible by 12 (plain: 4 shapes x 3 stop conds) and 24 (feature/conjunctive: 8 stims x 3 stop conds)
+// practiceLen: divisible by 12 (plain: 4 shapes x 3 stop conds) and 24 (feature: 8 stims x 3 stop conds)
 var practiceLen = 24;
 // Conjunctive block uses a deliberately-structured practice sequence instead
 // of the standard balanced practice:
@@ -633,7 +633,8 @@ var conjPracticeLen = 12;
 // rather than the 0.75 used for plain/feature: with only ~8 go trials per
 // round, 75% was too strict a gate.
 var conjPracticeAccuracyThresh = 0.55;
-// numTrialsPerBlock: same constraint. 72 -> 6 reps/combo in plain, 3 reps/combo in feature/conjunctive.
+// numTrialsPerBlock: same constraint. 72 -> 6 reps/combo in plain (12 combos)
+// and conjunctive (12 combos), 3 reps/combo in feature (24 combos).
 var numTrialsPerBlock = 72;
 // numTestBlocks runs of testNode PER block condition. We loop the block
 // condition externally (3 conditions x 1 test block each = 3 test blocks total).
@@ -696,7 +697,7 @@ var images = [pathSource + 'stopSignal.png'];
 // Per-block label for a (shape,color) stim.
 //   plain:       just the shape name ("circle" / "square")
 //   feature:     shape name (color shown but ignored by the rule)
-//   conjunctive: "pink triangle", "cyan cross", etc.
+//   conjunctive: "pink triangle", "blue cross", etc.
 var labelFor = function (shape, color) {
   if (currentBlockCondition === 'conjunctive') return color + ' ' + shape;
   return shape;
@@ -770,10 +771,12 @@ function buildPromptsForBlock(blockCondition) {
   ruleParagraphs =
     '<p class="block-text">If the shape is ' + article + '<b>' +
       mappingLines[0].stims.join('</b> or <b>') +
-      '</b>, press with your <b>' + mappingLines[0].resp[0] + '</b>.</p>' +
+      '</b>, press the <b>' + mappingLines[0].resp[2] +
+      '</b> with your <b>' + mappingLines[0].resp[0] + '</b>.</p>' +
     '<p class="block-text">If the shape is ' + article + '<b>' +
       mappingLines[1].stims.join('</b> or <b>') +
-      '</b>, press with your <b>' + mappingLines[1].resp[0] + '</b>.</p>';
+      '</b>, press the <b>' + mappingLines[1].resp[2] +
+      '</b> with your <b>' + mappingLines[1].resp[0] + '</b>.</p>';
 }
 
 // Initial build so module-level pageInstruct etc. have non-empty strings.
@@ -859,22 +862,23 @@ function buildPageInstruct(blockCondition, blockIdx, totalBlocks) {
   var ruleDescription;
   if (blockCondition === 'plain') {
     ruleDescription =
-      'In this block, the shape will appear in a single neutral color. ' +
+      'In this block, shapes will appear in a neutral color. ' +
       'Respond based on the <b>shape</b>.';
   } else if (blockCondition === 'feature') {
     ruleDescription =
-      'In this block, the shape will appear in one of two colors. ' +
+      'In this block, shapes will appear in one of two colors. ' +
       '<b>Only the shape matters</b>: ignore the color.';
   } else {
     ruleDescription =
-      'In this block, the shape will appear in one of two colors. ' +
-      'Both the <b>color</b> and the <b>shape</b> determine the correct response.';
+      'In this block, shapes will appear in one of two colors. ' +
+      '<p class="block-text">Both the <b>color</b> and the <b>shape</b> determine the correct response.</p>';
   }
 
   var rulePage =
     '<div class="centerbox">' +
     blockHeading +
     '<p class="block-text">Place your <b>index finger</b> on the <b>comma key (,)</b> and your <b>middle finger</b> on the <b>period key (.)</b></p>' +
+    '<p class="block-text">During this task, on each trial you will see shapes appear on the screen one at a time.</p>' +
     '<p class="block-text">' + ruleDescription + '</p>' +
     ruleParagraphs +
     renderMappingPanel(90) +
@@ -889,7 +893,8 @@ function buildPageInstruct(blockCondition, blockIdx, totalBlocks) {
     pages = [
       rulePage,
       '<div class="centerbox">' +
-        '<p class="block-text">We\'ll start with <b>two practice rounds</b> to learn the rule for this block. During practice, you will receive feedback and a reminder of the rules. These will not count towards your performance on the task. Please make sure you understand the instructions before moving on.</p>' +
+        '<p class="block-text">We\'ll start with <b>two practice rounds</b> to learn the rules for this block.</p>' +
+        '<p class="block-text">During practice, you will receive feedback and a reminder of the rules. These will be taken out for the test, so make sure you understand the instructions before moving on.</p>' +
         speedReminder +
         '</div>',
     ];
@@ -899,10 +904,11 @@ function buildPageInstruct(blockCondition, blockIdx, totalBlocks) {
       '<div class="centerbox">' +
         '<p class="block-text">On some trials, a star will appear around the shape, with or shortly after the shape appears.</p>' +
         '<p class="block-text">If you see the star, please try your best to <b>withhold your response</b> on that trial.</p>' +
+        '<p class="block-text">If the star appears and you try your best to withhold your response, you will find that you will be able to stop sometimes, but not always.</p>' +
         '<p class="block-text">Please <b>do not</b> slow down your responses in order to wait for the star. It is equally important to respond quickly on trials without the star as it is to stop on trials with the star.</p>' +
         '</div>',
       '<div class="centerbox">' +
-        '<p class="block-text">We\'ll start with a short practice round for this block. During practice, you will receive feedback and a reminder of the rules. These will not count towards your performance on the task. Please make sure you understand the instructions before moving on.</p>' +
+        '<p class="block-text">We\'ll start with a practice round. During practice, you will receive feedback and a reminder of the rules. These will be taken out for the test, so make sure you understand the instructions before moving on.</p>' +
         speedReminder +
         '</div>',
     ];
@@ -935,6 +941,13 @@ function setupBlock(blockCondition, blockIdx, totalBlocks) {
   SSD = 250;
   expStage = 'practice';
   sumInstructTime = 0;
+
+  // Blocks 2+ would otherwise reopen with the stale "Done with instructions"
+  // text left over from the previous block's instruction loop.
+  if (blockIdx > 0) {
+    feedbackInstructText =
+      '<p class="center-block-text">Press <i>enter</i> to view the instructions for the next block.</p>';
+  }
 
   // Pre-fill practice stims; testNode reseeds stims at the start of its
   // first iteration via its loop_function (after practice finishes).
@@ -1287,7 +1300,7 @@ var practiceLoopFunction = function (data) {
       if (aveShapeRespondCorrect <= accThresh) {
         feedbackText += `
         <p class="block-text">Your accuracy is low. Remember:</p>
-        ${promptTextList}`;
+        ${promptTextList}` + renderMappingPanel(90);
       }
 
       if (avgRT > rtThresh) {
@@ -1384,6 +1397,7 @@ var conjStopInstructNode = {
     '<div class="centerbox">' +
       '<p class="block-text">From now on, on some trials a star will appear around the shape, with or shortly after the shape appears.</p>' +
       '<p class="block-text">If you see the star, please try your best to <b>withhold your response</b> on that trial.</p>' +
+      '<p class="block-text">If the star appears and you try your best to withhold your response, you will find that you will be able to stop sometimes, but not always.</p>' +
       '<p class="block-text">Please <b>do not</b> slow down your responses in order to wait for the star. It is equally important to respond quickly on trials without the star as it is to stop on trials with the star.</p>' +
       '<p class="block-text">The next practice rounds will include star trials.</p>' +
       '</div>',
@@ -1392,8 +1406,8 @@ var conjStopInstructNode = {
   show_clickable_nav: true,
 };
 
-// Looped conjunctive practice WITH stop signals: repeats until 75% go accuracy
-// (practiceAccuracyThresh) or practiceThresh (3) rounds, like the other blocks.
+// Looped conjunctive practice WITH stop signals: repeats until 55% go accuracy
+// (conjPracticeAccuracyThresh) or practiceThresh (3) rounds.
 var conjPracticeNode = {
   timeline: [feedbackBlock].concat(conjPracticeTrials),
   loop_function: practiceLoopFunction,
@@ -1485,10 +1499,46 @@ var testNode = {
           <p class=centerbox>Press <i>enter</i> to continue.</p>
           </div>`;
       } else {
+        // With numTestBlocks = 1, this branch is the only test-stage
+        // performance feedback participants ever see, so it carries the same
+        // accuracy/RT/missed/stop warnings as experiment 3's between-block
+        // feedback. renderMappingPanel still reflects the block that just
+        // finished (setupBlock for the next condition runs after the trailing
+        // feedbackBlock displays this text).
         feedbackText =
-          '<div class="centerbox">' +
-          '<p class="block-text">You have completed block ' + blocksDone +
-            ' of ' + numSessionBlocks + '.</p>' +
+          '<div class = centerbox><p class = block-text>Please take this time to read your feedback! This screen will advance automatically in 1 minute.</p>';
+
+        feedbackText += `<p class="block-text">You have completed block ${blocksDone} of ${numSessionBlocks}.</p>`;
+
+        if (aveShapeRespondCorrect < accuracyThresh) {
+          feedbackText += `
+          <p class="block-text">Your accuracy is low. Remember:</p>
+          ${promptTextList}` + renderMappingPanel(90);
+        }
+
+        if (avgRT > rtThresh) {
+          feedbackText += `
+          <p class="block-text">You have been responding too slowly.</p>
+          ${speedReminder}`;
+        }
+
+        if (missedResponses > missedResponseThresh) {
+          feedbackText += `
+            <p class="block-text">We have detected a number of trials that required a response, where no response was made. Please ensure that you are responding quickly and accurately to the shapes.</p>`;
+        }
+
+        if (stopSignalRespond >= maxStopCorrect) {
+          feedbackText += `
+          <p class="block-text">You have not been stopping your response when stars are present.</p>
+          <p class="block-text">Please try your best to stop your response if you see a star.</p>`;
+        }
+
+        if (stopSignalRespond <= minStopCorrect) {
+          feedbackText += `
+          <p class="block-text">Please do not slow down and wait for the star to appear. Respond as quickly and accurately as possible when a star does not appear.</p>`;
+        }
+
+        feedbackText +=
           '<p class="block-text">The next block has a <b>different rule</b>; ' +
             'you\'ll see new instructions and a short practice round before it starts.</p>' +
           '<p class="block-text">Press <i>enter</i> to continue.</p>' +
@@ -1505,7 +1555,7 @@ var testNode = {
       if (aveShapeRespondCorrect < accuracyThresh) {
         feedbackText += `
         <p class="block-text">Your accuracy is low. Remember:</p>
-        ${promptTextList}`;
+        ${promptTextList}` + renderMappingPanel(90);
       }
 
       if (avgRT > rtThresh) {
