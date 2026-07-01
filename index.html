@@ -47,7 +47,7 @@
     </label>
     <p style="color: #ddd; font-size: 85%; margin: 4px 0 0 0; line-height: 1.4;">
       Cycles: block order every 1, key direction every 6, shape pairing every 12.
-      Plain &amp; feature use circle/square/diamond/pentagon (paired 4→2);
+      Plain uses hourglass/moon/teardrop/heart and feature uses circle/square/diamond/pentagon (each paired 4→2) — distinct shape sets, so no shape→key code carries across blocks;
       conjunctive uses triangle &amp; cross in pink &amp; cyan — shapes and colors the participant never saw before, so the AND-binding is learned fresh without overriding a prior shape→key or color code.
     </p>
     <div id="mapping-preview" style="margin: 18px 0 0 0;"></div>
@@ -329,28 +329,38 @@ if (window._autostart) {
               'key config ' + (kc + 1) + '/2, ' +
               'pairing ' + (window.pairingIdx + 1) + '/3.</div>';
 
-      // --- Section 1: plain & feature shape -> key map ---
+      // --- Section 1: plain and feature shape -> key maps (now DISTINCT
+      // shape sets: plain = hourglass/moon/teardrop/heart, feature =
+      // circle/square/diamond/pentagon). Same 2-key structure, so slot k maps
+      // to possibleResponses[k] in both. ---
       getKeyMappingForTask(kc, 'plain');
-      html += '<div style="font-size:90%;color:#ddd;margin-bottom:6px;">' +
-              'shape → key map (plain &amp; feature blocks share this binding)</div>';
-      html += '<table style="border-collapse:collapse;color:#fff;font-size:95%;"><tbody>';
-      for (var k = 0; k < 2; k++) {
-        var groupShapes = pairing[k];
-        html += '<tr><td style="padding:8px 12px;border-top:1px solid #555;">';
-        for (var g = 0; g < groupShapes.length; g++) {
-          html += '<span style="display:inline-block;margin-right:8px;vertical-align:middle;">' +
-                  svg(groupShapes[g], '#e8e8e8') + '</span>';
+      var shapeKeyTable = function (pairingArr) {
+        var t = '<table style="border-collapse:collapse;color:#fff;font-size:95%;"><tbody>';
+        for (var k = 0; k < 2; k++) {
+          var groupShapes = pairingArr[k];
+          t += '<tr><td style="padding:8px 12px;border-top:1px solid #555;">';
+          for (var g = 0; g < groupShapes.length; g++) {
+            t += '<span style="display:inline-block;margin-right:8px;vertical-align:middle;">' +
+                 svg(groupShapes[g], '#e8e8e8') + '</span>';
+          }
+          t += '<span style="vertical-align:middle;color:#ddd;">' +
+               groupShapes.join(' or ') + '</span></td>' +
+               '<td style="padding:8px 12px;border-top:1px solid #555;font-size:22px;text-align:center;">→</td>' +
+               '<td style="padding:8px 12px;border-top:1px solid #555;text-align:center;">' +
+               keyChip(possibleResponses[k][2]) + '</td></tr>';
         }
-        html += '<span style="vertical-align:middle;color:#ddd;">' +
-                groupShapes.join(' or ') + '</span></td>' +
-                '<td style="padding:8px 12px;border-top:1px solid #555;font-size:22px;text-align:center;">→</td>' +
-                '<td style="padding:8px 12px;border-top:1px solid #555;text-align:center;">' +
-                keyChip(possibleResponses[k][2]) + '</td></tr>';
-      }
-      html += '</tbody></table>';
-      html += '<div style="font-size:80%;color:#bbb;margin:4px 0 14px;">' +
-              'feature block shows the same shapes in ' + colorWord('violet') +
-              ' / ' + colorWord('orange') + ' (task-irrelevant).</div>';
+        t += '</tbody></table>';
+        return t;
+      };
+      html += '<div style="font-size:90%;color:#ddd;margin-bottom:6px;">' +
+              'plain block shape → key map</div>';
+      html += shapeKeyTable(plainShapePairings[window.pairingIdx]);
+      html += '<div style="font-size:90%;color:#ddd;margin:14px 0 6px;">' +
+              'feature block shape → key map (distinct shapes, shown in ' +
+              colorWord('violet') + ' / ' + colorWord('orange') +
+              ' — color task-irrelevant)</div>';
+      html += shapeKeyTable(pairing);
+      html += '<div style="height:14px;"></div>';
 
       // --- Section 2: conjunctive (shape, color) -> key map, real colors ---
       getKeyMappingForTask(kc, 'conjunctive');

@@ -10,21 +10,32 @@ All shapes are rendered as inline SVG (resolution-independent, colored
 dynamically per trial). Each fits a 160×160 viewBox with a ~120-px visual
 footprint.
 
-### Plain & Feature blocks — 4 base shapes
+Every block uses its **own dedicated shape set** — no shape ever appears in more
+than one condition, so there is no shared shape→key code to carry across blocks
+(see [Block conditions](#block-conditions)).
+
+### Plain block — 4 shapes (neutral color)
+
+The plain shapes are drawn procedurally as inline SVG (`shapeInnerSvg` in
+`experiment.js`); unlike the feature/conjunctive shapes there are no PNG assets.
+All appear in the neutral color (`#e8e8e8`) — the plain block has no color.
+
+| Shape     | Rendering                            |
+| --------- | ------------------------------------ |
+| hourglass | two triangles meeting at the centre  |
+| moon      | waxing crescent                      |
+| teardrop  | point-up teardrop                    |
+| heart     | two-lobe heart                       |
+
+### Feature block — 4 shapes (violet / orange)
 
 <table>
 <tr>
-<td align="center"><strong>circle</strong><br><img src="feature_stop_task/images/circle_neutral.png" width="80"></td>
-<td align="center"><strong>square</strong><br><img src="feature_stop_task/images/square_neutral.png" width="80"></td>
-<td align="center"><strong>diamond</strong><br><img src="feature_stop_task/images/diamond_neutral.png" width="80"></td>
-<td align="center"><strong>pentagon</strong><br><img src="feature_stop_task/images/pentagon_neutral.png" width="80"></td>
+<td align="center"><strong>circle</strong></td>
+<td align="center"><strong>square</strong></td>
+<td align="center"><strong>diamond</strong></td>
+<td align="center"><strong>pentagon</strong></td>
 </tr>
-<tr>
-<td align="center" colspan="4"><em>neutral (plain block)</em></td>
-</tr>
-</table>
-
-<table>
 <tr>
 <td align="center"><img src="feature_stop_task/images/circle_violet.png" width="60"></td>
 <td align="center"><img src="feature_stop_task/images/square_violet.png" width="60"></td>
@@ -63,8 +74,9 @@ footprint.
 </table>
 
 These shapes appear **only** in the conjunctive block and **never** in plain or
-feature. This ensures the (shape, color) AND-binding is learned fresh — there is
-no prior shape→key code to override or interfere with.
+feature. As with every block's dedicated shape set, this ensures the
+(shape, color) AND-binding is learned fresh — there is no prior shape→key code
+to override or interfere with.
 
 ### Color palette
 
@@ -90,33 +102,58 @@ pairs remain separable under any single dichromacy.
 
 ## Block conditions
 
-Each participant runs **three within-subjects blocks**, one per condition:
+Each participant runs **three within-subjects blocks**, one per condition. Every
+block has a **distinct shape set**, so the three conditions are fully
+independent — no shape (and therefore no shape→key code) is ever shared across
+blocks:
 
-- **plain** — 4 base shapes, neutral color; respond based on shape.
-  Equivalent to the original simple stop task.
-- **feature** — 4 base shapes in violet or orange; color is task-irrelevant;
-  respond based on shape (color is a perceptual distractor). Same shape→key
-  map as plain.
+- **plain** — hourglass, moon, teardrop, heart in neutral color; respond based
+  on shape. Equivalent to the original simple stop task.
+- **feature** — circle, square, diamond, pentagon in violet or orange; color is
+  task-irrelevant; respond based on shape (color is a perceptual distractor).
 - **conjunctive** — triangle and cross in pink or blue. Both shape AND
   color determine the correct key (XOR-like mapping). Because both the shapes
-  and the colors are novel (never seen in plain/feature), the AND-binding cost
-  is isolated from any proactive interference with the 4-shape→2-key mapping
-  or the violet/orange color code learned earlier.
+  and the colors are novel, the AND-binding cost is isolated from any proactive
+  interference with a previously learned shape→key or color code.
 
-## Key mapping: 4→2 pairing (plain & feature)
+Because each block introduces its own shapes, moving from one condition to the
+next never lets a previously learned shape→key mapping carry over (earlier
+versions deliberately shared the plain/feature shapes to avoid relearning; that
+was dropped in favor of complete block independence).
 
-The 4 base shapes are split into two pairs, each pair mapped to one response
-key (comma `,` or period `.`). Three disjoint pairings are counterbalanced
-across participants:
+## Key mapping: 4→2 pairing (plain and feature)
 
-| Pairing | Key A shapes         | Key B shapes          |
-| ------- | -------------------- | --------------------- |
-| 1       | circle, square       | diamond, pentagon     |
-| 2       | circle, diamond      | square, pentagon      |
-| 3       | circle, pentagon     | square, diamond       |
+In each of the plain and feature blocks the 4 shapes are split into two pairs,
+each pair mapped to one response key (comma `,` or period `.`). The plain and
+feature blocks now use **different shape sets and independent pairings**.
 
-The pairing is **fixed for the entire session**: a participant sees the same
-shape→key binding in both the plain and feature blocks.
+**Pairing 1 is the primary (design-intended) grouping** — each less-common shape
+is paired with a more common one — and is the grouping used at `group_index = 1`:
+
+| Block   | `,` (comma) group   | `.` (period) group  |
+| ------- | ------------------- | ------------------- |
+| plain   | heart, moon         | hourglass, teardrop |
+| feature | circle, diamond     | square, pentagon    |
+
+The two remaining disjoint partitions of each set are retained only to fill the
+`pairingIdx` counterbalancing dimension:
+
+| Pairing | Plain `,` / `.`                        | Feature `,` / `.`                    |
+| ------- | -------------------------------------- | ------------------------------------ |
+| 1       | heart, moon / hourglass, teardrop      | circle, diamond / square, pentagon   |
+| 2       | hourglass, moon / teardrop, heart      | circle, square / diamond, pentagon   |
+| 3       | hourglass, heart / moon, teardrop      | circle, pentagon / square, diamond   |
+
+The pairing index is fixed for a participant's whole session, but plain and
+feature are otherwise independent conditions with their own shapes. (The comma
+vs. period assignment shown above is for `keyConfigIdx = 0`; it flips for
+`keyConfigIdx = 1`.)
+
+> **Note:** because `pairingIdx` still counterbalances across all three
+> partitions, only participants with `pairingIdx = 0` (`group_index` 1–12) get
+> the intended "uncommon + common" Pairing 1. If every participant should get
+> Pairing 1, collapse to a single fixed pairing and drop the `pairingIdx`
+> dimension (36 → 12 cells).
 
 ### Conjunctive key mapping
 
@@ -142,43 +179,51 @@ and shape pairing. 36 cells = 6 block orders × 2 key configs × 3 pairings.
 | keyConfigIdx    | `⌊(gi − 1) / 6⌋ % 2`                     | 0–1   |
 | pairingIdx      | `⌊(gi − 1) / 12⌋ % 3`                    | 0–2   |
 
-Saved per trial: `group_index`, `block_order_idx`, `key_config_idx`,
-`pairing_idx`, `shape_pairing` (e.g. `"circle+square_vs_diamond+pentagon"`),
-`conj_shapes` (`"triangle+cross"`), `conj_colors` (`"pink+blue"`),
-`block_condition`, `block_order`.
+`pairingIdx` selects one of the three disjoint partitions **for each block's own
+shape set** (plain and feature are partitioned independently; see
+[Key mapping](#key-mapping-42-pairing-plain-and-feature)).
+
+Saved per trial (counterbalancing): `group_index`, `block_order_idx`,
+`key_config_idx`, `pairing_idx`, `feature_shape_pairing`
+(e.g. `"circle+diamond_vs_square+pentagon"`), `plain_shape_pairing`
+(e.g. `"heart+moon_vs_hourglass+teardrop"`), `shape_pairing` (backward-compat
+alias of `feature_shape_pairing`), `conj_shapes` (`"triangle+cross"`),
+`conj_colors` (`"pink+blue"`), `block_order`. Because plain and feature use
+independent pairings, **both** are recorded so each block's grouping is
+recoverable.
+
+Saved per trial (task): `block_condition`, `stim`, `color`, `condition`
+(`go`/`stop`), `correct_response`, `correct_trial`, `response`, `rt`, `SSD`,
+`block_num`, `exp_stage` (`practice`/`test`), and `practice_phase`
+(`no_stop` / `with_stop` during practice; `null` in the test).
 
 ## Timeline per block
 
 For each block in `blockOrder`:
 
+Every block — plain, feature, and conjunctive — uses the **same two-phase
+practice structure**; the stop signal is never mentioned until the participant
+has learned the shape→key binding.
+
 1. setup callback (sets `currentBlockCondition`, rebuilds `keyMap`, prompts, and
-   instructions; resets practice/test counters and SSD)
-2. block-specific instructions (rule + visual stim→key mapping panel +
-   stop-signal explanation + practice intro)
-3. per-block practice
-   - **plain / feature**: standard 24-trial balanced practice (`practiceLen`),
-     looping until accuracy threshold or `practiceThresh`. The block
-     instructions include the stop-signal (star) page up front.
-   - **conjunctive**: a structured sequence of 12-trial rounds
-     (`conjPracticeLen`); the star is not mentioned until step (c):
-     1. **Mandatory round 1, no stop signals** (`createConjGoRound1`): the two
-        (shape, color) combos mapped to the comma key, then the two mapped to
-        the period key, then the remaining 8 go trials shuffled.
-     2. **Mandatory round 2, no stop signals** (`createConjGoRound2`): 12
-        fully shuffled go trials.
-     3. **Stop-signal instructions** (withhold-your-response page), shown only
-        now; the "Do not respond if a star appears" prompt line also appears
-        from this point on.
-     4. **Looped practice with stop signals** (`createConjStopRound`): 12
-        randomly sampled trials with ~1/3 stop trials, looping until go
-        accuracy exceeds `conjPracticeAccuracyThresh` (0.55 — experiment 2's
-        go-accuracy inclusion bar) or `practiceThresh` (3) rounds. Plain and
-        feature practice keeps the stricter 0.75 gate.
-     Practice trials carry a `practice_phase` data field
-     (`no_stop_ordered` / `no_stop_shuffled` / `with_stop`; null in
-     plain/feature).
-4. one test block (72 trials, 33% stop)
-5. between-block feedback (or end-of-task message after the final block)
+   instructions; resets practice/test counters and SSD). The star rule is
+   suppressed (`includeStopRule = false`).
+2. block-specific instructions: rule page (+ visual stim→key mapping panel) and
+   a short "we'll start with a practice round" page. **No stop-signal page yet.**
+3. **Phase 1 — go-only practice** (`goPhaseNode`, `createGoRound`):
+   `practicePhaseLen` (12) go trials, no stop signals. Loops until go-accuracy
+   exceeds `practiceAccuracyThresh` (0.75) or `practiceThresh` (3) rounds.
+   Trials tagged `practice_phase = "no_stop"`.
+4. **Stop-signal instructions** (`stopInstructNode`, withhold-your-response
+   page). `includeStopRule` flips to `true` and prompts are rebuilt so the
+   "Do not respond if a star appears" reminder appears from here on.
+5. **Phase 2 — practice with stop signals** (`stopPhaseNode`, `createStopRound`):
+   `practicePhaseLen` (12) trials, ~1/3 stop. Loops on the same 0.75 gate /
+   `practiceThresh`. Trials tagged `practice_phase = "with_stop"`. The loop
+   counter is reset between phases so each phase gets its own up-to-3 cap.
+6. **Test**: `numTestBlocks` (3) test blocks of `numTrialsPerBlock` (60) trials
+   each, ~1/3 stop (20 stop/block) → 180 test / 60 stop trials per condition.
+7. between-block feedback (or end-of-task message after the final block).
 
 ## Trial structure
 
@@ -190,9 +235,16 @@ For each block in `blockOrder`:
 
 ## Blocks
 
-| Block type | Number of blocks | Trials per block |
-| ---------- | ---------------- | ---------------- |
-| Test       | 3                | 72               |
+Per block condition (plain / feature / conjunctive):
+
+| Phase           | Rounds        | Trials per round | Stop trials    |
+| --------------- | ------------- | ---------------- | -------------- |
+| Practice go     | up to 3 (loop) | 12 (go only)    | 0              |
+| Practice stop   | up to 3 (loop) | 12              | ~4 (⅓)         |
+| Test            | 3             | 60               | 20 (⅓)         |
+
+Test totals per condition: **180 test trials, 60 stop trials** (matching
+experiments 1–3).
 
 ## Conditions and probabilities
 
@@ -233,27 +285,40 @@ shows a live mapping table that updates as you change `group_index`.
 
 > The experiment will switch to full screen mode when you press the button below.
 
+The stop-signal (star) instructions are shown **between** the two practice
+phases, after the participant has learned the shape→key binding — not up front.
+
 ### Welcome screen
 
-> Welcome! This experiment will take around 10 to 15 minutes. To avoid technical
+> Welcome! This experiment will take around 50 minutes. To avoid technical
 > issues, please keep the experiment tab (on Chrome or Firefox) active and in
 > fullscreen mode for the whole duration of each task. Press enter to begin.
 
-### Page 1: key placement
+### Page 1: rule page (per block)
 
 > Place your index finger on the comma key (,) and your middle finger on the
 > period key (.).
 >
 > During this task, on each trial, you will see shapes appear on the screen one
-> at a time.
+> at a time. [block-specific shape→key rule + visual SVG mapping panel]
 
-(Shape→key rules are generated dynamically per block, including visual SVG
-mapping panels.)
+(Shape→key rules are generated dynamically per block. No star mention yet.)
 
-### Page 2: stop signal
+### Page 2: practice intro
 
-> On some trials, a star will appear around the shape, shortly after the shape
-> appears.
+> We'll start with a practice round to learn the rules for this block. During
+> practice, you will receive feedback and a reminder of the rules. These will be
+> taken out for the test, so make sure you understand the instructions before
+> moving on.
+>
+> Try to respond as quickly and accurately as possible.
+
+*→ Phase 1: go-only practice runs here (loops to proficiency).*
+
+### Page 3: stop-signal instructions (after go practice)
+
+> From now on, on some trials a star will appear around the shape, with or
+> shortly after the shape appears.
 >
 > If you see the star, please try your best to withhold your response on that
 > trial.
@@ -265,14 +330,4 @@ mapping panels.)
 > equally important to respond quickly on trials without the star as it is to
 > stop on trials with the star.
 
-### Page 3: practice intro
-
-> We'll start with a practice round. During practice, you will receive feedback
-> and a reminder of the rules. These will be taken out for the test, so make
-> sure you understand the instructions before moving on.
->
-> Try to respond as quickly and accurately as possible.
-
-### Page 4: start practice
-
-> Press enter to begin practice.
+*→ Phase 2: practice with stop signals runs here, then the test.*
