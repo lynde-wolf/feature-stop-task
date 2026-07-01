@@ -17,15 +17,27 @@ than one condition, so there is no shared shape→key code to carry across block
 ### Plain block — 4 shapes (neutral color)
 
 The plain shapes are drawn procedurally as inline SVG (`shapeInnerSvg` in
-`experiment.js`); unlike the feature/conjunctive shapes there are no PNG assets.
+`experiment.js`); the previews below are PNG renders of that same geometry
+(shown on the task's `#707070` background so the light neutral fill is visible).
 All appear in the neutral color (`#e8e8e8`) — the plain block has no color.
 
-| Shape     | Rendering                            |
-| --------- | ------------------------------------ |
-| hourglass | two triangles meeting at the centre  |
-| moon      | waxing crescent                      |
-| teardrop  | point-up teardrop                    |
-| heart     | two-lobe heart                       |
+<table>
+<tr>
+<td align="center"><strong>hourglass</strong></td>
+<td align="center"><strong>moon</strong></td>
+<td align="center"><strong>teardrop</strong></td>
+<td align="center"><strong>heart</strong></td>
+</tr>
+<tr>
+<td align="center"><img src="feature_stop_task/images/hourglass_neutral.png" width="80"></td>
+<td align="center"><img src="feature_stop_task/images/moon_neutral.png" width="80"></td>
+<td align="center"><img src="feature_stop_task/images/teardrop_neutral.png" width="80"></td>
+<td align="center"><img src="feature_stop_task/images/heart_neutral.png" width="80"></td>
+</tr>
+<tr>
+<td align="center" colspan="4"><em>hourglass = two triangles · moon = waxing crescent · teardrop = point-up · heart = two-lobe</em></td>
+</tr>
+</table>
 
 ### Feature block — 4 shapes (violet / orange)
 
