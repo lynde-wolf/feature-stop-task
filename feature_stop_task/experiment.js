@@ -907,17 +907,32 @@ function buildPageInstruct(blockCondition, blockIdx, totalBlocks) {
   } else {
     ruleDescription =
       'In this block, shapes will appear in one of two colors. ' +
-      '<p class="block-text">Both the <b>color</b> and the <b>shape</b> determine the correct response.</p>';
+      'Both the <b>color</b> and the <b>shape</b> determine the correct response.';
   }
 
-  var rulePage =
+  // Instruction content is split across pages so each page fits the deployed
+  // expfactory .centerbox (a fixed 50vw x 60vh absolute box with 40px
+  // block-text) — content that overflows it spills over the nav buttons.
+  // Match simple_stop_signal_e3's per-page volume (~4 short paragraphs):
+  // intro text, then the verbal rule, then the SVG mapping panel, each on
+  // its own page.
+  var introPage =
     '<div class="centerbox">' +
     blockHeading +
     '<p class="block-text">Place your <b>index finger</b> on the <b>comma key (,)</b> and your <b>middle finger</b> on the <b>period key (.)</b></p>' +
-    '<p class="block-text">During this task, on each trial you will see shapes appear on the screen one at a time.</p>' +
     '<p class="block-text">' + ruleDescription + '</p>' +
+    '</div>';
+
+  var rulePage =
+    '<div class="centerbox">' +
+    '<p class="block-text">During this task, on each trial you will see shapes appear on the screen one at a time.</p>' +
     ruleParagraphs +
-    renderMappingPanel(90) +
+    '</div>';
+
+  var mappingPage =
+    '<div class="centerbox">' +
+    '<p class="block-text">Here is a visual summary of the rule for this block:</p>' +
+    renderMappingPanel(70) +
     '<p class="block-text">You should respond as quickly and accurately as possible.</p>' +
     '</div>';
 
@@ -925,7 +940,9 @@ function buildPageInstruct(blockCondition, blockIdx, totalBlocks) {
   // learn the shape -> key binding. The withhold-your-response instructions are
   // shown afterwards (stopInstructNode), before the stop phase.
   var pages = [
+    introPage,
     rulePage,
+    mappingPage,
     '<div class="centerbox">' +
       '<p class="block-text">We\'ll start with a practice round to learn the rules for this block.</p>' +
       '<p class="block-text">During practice, you will receive feedback and a reminder of the rules. These will be taken out for the test, so make sure you understand the instructions before moving on.</p>' +
