@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Shape weirdness ranking</title>
+  <script src="https://unpkg.com/sortablejs@1.15.2/Sortable.min.js"></script>
+  <style>
+    body {
+      background-color: #707070;
+      color: #fff;
+      font-family: sans-serif;
+      margin: 0;
+      padding: 24px 12px 60px;
+      display: flex;
+      justify-content: center;
+    }
+    .wrap { max-width: 480px; width: 100%; }
+    h1 { font-size: 22px; margin: 0 0 6px; }
+    p.instructions { color: #e0e0e0; font-size: 14px; line-height: 1.5; margin: 0 0 18px; }
+    #shape-list { list-style: none; margin: 0; padding: 0; }
+    #shape-list li {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: #5c5c5c;
+      border: 1px solid #4a4a4a;
+      border-radius: 8px;
+      padding: 6px 14px;
+      margin-bottom: 8px;
+      cursor: grab;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    #shape-list li.sortable-ghost { opacity: 0.35; }
+    #shape-list li.sortable-chosen { background: #4f4f4f; cursor: grabbing; }
+    .rank-num {
+      font-size: 15px;
+      font-family: monospace;
+      color: #ccc;
+      width: 2em;
+      text-align: right;
+      flex-shrink: 0;
+    }
+    .grip { margin-left: auto; color: #999; font-size: 18px; flex-shrink: 0; }
+    .controls { margin-top: 22px; }
+    .controls label { display: block; font-size: 14px; color: #e0e0e0; margin-bottom: 6px; }
+    .controls input {
+      font-size: 16px;
+      padding: 8px 10px;
+      border-radius: 6px;
+      border: 1px solid #4a4a4a;
+      background: #5c5c5c;
+      color: #fff;
+      width: 100%;
+      box-sizing: border-box;
+      margin-bottom: 14px;
+    }
+    .controls button {
+      font-size: 16px;
+      padding: 10px 20px;
+      border-radius: 6px;
+      border: none;
+      background: #2f6fdb;
+      color: #fff;
+      cursor: pointer;
+    }
+    .controls button:hover { background: #2a63c4; }
+    #done-msg { margin-top: 12px; font-size: 14px; color: #baffba; min-height: 1.2em; }
+    .collected {
+      margin-top: 26px;
+      padding-top: 14px;
+      border-top: 1px solid #5c5c5c;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .controls button.secondary {
+      background: #5c5c5c;
+      border: 1px solid #4a4a4a;
+      font-size: 14px;
+      padding: 8px 14px;
+    }
+    .controls button.secondary:hover { background: #525252; }
+    #count-msg { font-size: 13px; color: #ddd; }
+    #clear-link { font-size: 12px; color: #bbb; margin-left: auto; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Shape weirdness ranking</h1>
+  <p class="instructions">
+    Drag the shapes to reorder them by weirdness: <b>1 is the most weird</b>,
+    the bottom is the least weird. Go with your gut &mdash; there are no right
+    answers. When the order feels right, enter your name and hit
+    <b>Next person</b>.
+  </p>
+  <ul id="shape-list"></ul>
+  <div class="controls">
+    <label for="pid-input">Your name:</label>
+    <input id="pid-input" type="text" placeholder="e.g. sam" autocomplete="off">
+    <button id="next-btn" type="button">Next person</button>
+    <div id="done-msg"></div>
+    <div class="collected">
+      <button id="download-btn" type="button" class="secondary">Download all rankings (CSV)</button>
+      <span id="count-msg"></span>
+      <a href="#" id="clear-link">clear saved data</a>
+    </div>
+  </div>
+</div>
+
+<script>
+// Shape geometry copied verbatim from feature_stop_task/experiment.js
+// (shapeInnerSvg). Kept inline so this page is fully standalone on Pages.
+var SHAPE_SVG = {
+  circle: '<circle cx="80" cy="80" r="60" fill="#e8e8e8"/>',
+  square: '<rect x="20" y="20" width="120" height="120" rx="4" ry="4" fill="#e8e8e8"/>',
+  diamond: '<polygon points="80,20 140,80 80,140 20,80" fill="#e8e8e8"/>',
+  pentagon: '<polygon points="80,20 137.1,61.5 115.3,128.5 44.7,128.5 22.9,61.5" fill="#e8e8e8"/>',
+  triangle: '<polygon points="80,20 140,134 20,134" fill="#e8e8e8"/>',
+  cross: '<polygon points="60,20 100,20 100,60 140,60 140,100 100,100 100,140 60,140 60,100 20,100 20,60 60,60" fill="#e8e8e8"/>',
+  hourglass: '<polygon points="35,25 125,25 80,80" fill="#e8e8e8"/><polygon points="35,135 125,135 80,80" fill="#e8e8e8"/>',
+  moon: '<path d="M80,20 A60,60 0 1 0 80,140 A40,60 0 1 1 80,20 Z" fill="#e8e8e8"/>',
+  teardrop: '<path d="M80,20 C130,90 130,140 80,140 C30,140 30,90 80,20 Z" fill="#e8e8e8"/>',
+  heart: '<path d="M80,45 C70,25 30,25 30,60 C30,95 80,120 80,135 C80,120 130,95 130,60 C130,25 90,25 80,45 Z" fill="#e8e8e8"/>',
+};
+
+var shapeNames = Object.keys(SHAPE_SVG);
+
+// Fisher-Yates shuffle so each visitor starts from a random order.
+function shuffled(arr) {
+  var a = arr.slice();
+  for (var i = a.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a;
+}
+
+var listEl = document.getElementById('shape-list');
+
+function buildList() {
+  listEl.innerHTML = '';
+  shuffled(shapeNames).forEach(function (name) {
+    var li = document.createElement('li');
+    li.dataset.shape = name;
+    li.innerHTML =
+      '<span class="rank-num"></span>' +
+      '<svg width="52" height="52" viewBox="0 0 160 160">' + SHAPE_SVG[name] + '</svg>' +
+      '<span class="grip">&#x2630;</span>';
+    listEl.appendChild(li);
+  });
+  renumber();
+}
+
+function renumber() {
+  var items = listEl.querySelectorAll('li');
+  for (var i = 0; i < items.length; i++) {
+    items[i].querySelector('.rank-num').textContent = (i + 1) + '.';
+  }
+}
+buildList();
+
+Sortable.create(listEl, { animation: 150, onSort: renumber });
+
+// Rankings accumulate across people in localStorage so the laptop can be
+// passed around, then everything downloads as one CSV at the end.
+var STORE_KEY = 'shape_weirdness_rows';
+var CSV_HEADER = 'pid,timestamp,rank,shape';
+
+function storedRows() {
+  try {
+    return JSON.parse(localStorage.getItem(STORE_KEY) || '[]');
+  } catch (e) {
+    return [];
+  }
+}
+
+function updateCount() {
+  var n = storedRows().length / shapeNames.length;
+  document.getElementById('count-msg').textContent =
+    n === 1 ? '1 ranking saved' : n + ' rankings saved';
+}
+updateCount();
+
+// rank 1 = most weird (top of the list).
+function currentRows(pid, timestamp) {
+  var rows = [];
+  var items = listEl.querySelectorAll('li');
+  for (var i = 0; i < items.length; i++) {
+    rows.push([pid, timestamp, i + 1, items[i].dataset.shape].join(','));
+  }
+  return rows;
+}
+
+document.getElementById('next-btn').addEventListener('click', function () {
+  var pid = (document.getElementById('pid-input').value.trim() || 'anon')
+    .toLowerCase().replace(/[^a-z0-9_-]+/g, '_');
+  var timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  var rows = storedRows().concat(currentRows(pid, timestamp));
+  localStorage.setItem(STORE_KEY, JSON.stringify(rows));
+  updateCount();
+  document.getElementById('pid-input').value = '';
+  buildList();
+  document.getElementById('done-msg').textContent =
+    'Saved ' + pid + "'s ranking — pass it on!";
+});
+
+document.getElementById('download-btn').addEventListener('click', function () {
+  var rows = storedRows();
+  if (rows.length === 0) {
+    document.getElementById('done-msg').textContent =
+      'Nothing saved yet — hit Next person first.';
+    return;
+  }
+  var csv = CSV_HEADER + '\n' + rows.join('\n') + '\n';
+  var blob = new Blob([csv], { type: 'text/csv' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download =
+    'shape_weirdness_' + new Date().toISOString().replace(/[:.]/g, '-') + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+});
+
+document.getElementById('clear-link').addEventListener('click', function (e) {
+  e.preventDefault();
+  var n = storedRows().length / shapeNames.length;
+  if (n > 0 && !confirm('Delete all ' + n + ' saved rankings?')) return;
+  localStorage.removeItem(STORE_KEY);
+  updateCount();
+  document.getElementById('done-msg').textContent = '';
+});
+</script>
+</body>
+</html>
