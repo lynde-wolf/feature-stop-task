@@ -280,9 +280,9 @@ var shapeInnerSvg = function (shape, hex) {
       '"/>'
     );
   }
-  // --- Plain-block shapes (hourglass, moon, teardrop, heart). Kept visually
-  // distinct from the feature-block set (circle/square/diamond/pentagon) so the
-  // two conditions never share a shape. ---
+  // --- Remaining shapes (hourglass, moon, teardrop, heart). This function
+  // only draws geometry; block membership is defined by the plainShapes /
+  // shapes / conjShapes arrays below (weirdness-balanced split). ---
   if (shape === 'hourglass') {
     // Two triangles meeting at the centre, within the 120x120 bounding box.
     return (
@@ -408,32 +408,41 @@ var appendData = function (data) {
 /* ************************************ */
 const fixationDuration = 500;
 
-// Feature-block shapes.
-var shapes = ['circle', 'square', 'diamond', 'pentagon'];
+// The plain and feature sets are DISTINCT (the two conditions never share a
+// stimulus) and are balanced on rated weirdness: n=9 raters (July 2026,
+// collected via rank_shapes.html; Kendall's W = .85) ranked the 10 shapes
+// most(1)→least(10) weird, and shapes were assigned so each block gets two
+// weird + two ordinary shapes with near-equal mean rank (plain 5.39, feature
+// 5.44, conjunctive 5.83; grand mean 5.5). Diamond and square are deliberately
+// kept in different blocks (a diamond is a rotated square — too confusable
+// within-block).
 
-// Plain-block shapes: a DISTINCT set from the feature shapes so the two
-// conditions never share a stimulus. Same 4-shape / 2-key-group structure as
-// feature, just different icons (rendered as SVG in shapeInnerSvg).
-var plainShapes = ['hourglass', 'moon', 'teardrop', 'heart'];
+// Feature-block shapes.
+var shapes = ['hourglass', 'heart', 'pentagon', 'square'];
+
+// Plain-block shapes. Same 4-shape / 2-key-group structure as feature, just
+// different icons (rendered as SVG in shapeInnerSvg).
+var plainShapes = ['moon', 'teardrop', 'diamond', 'circle'];
 
 // The three disjoint ways to partition each 4-shape set into two response-key
 // groups. Index 0 is the PRIMARY grouping (used for group_index 1, and the
-// design's intended grouping): each less-common shape is paired with a more
-// common one — feature: circle+diamond / square+pentagon; plain: heart+moon /
-// hourglass+teardrop. group[0] -> possibleResponses[0] (comma for key config
-// 0), group[1] -> possibleResponses[1] (period). Indices 1-2 are the remaining
-// partitions, retained only for the group_index pairing counterbalancing.
+// design's intended grouping): each pair combines one weird and one ordinary
+// shape so the two response keys are weirdness-balanced too — feature:
+// hourglass+square / heart+pentagon; plain: moon+circle / teardrop+diamond.
+// group[0] -> possibleResponses[0] (comma for key config 0), group[1] ->
+// possibleResponses[1] (period). Indices 1-2 are the remaining partitions,
+// retained only for the group_index pairing counterbalancing.
 // Plain and feature are fully independent block conditions (distinct shape
 // sets, no shared shape -> key code), so their pairings need not correspond.
 var shapePairings = [
-  [['circle', 'diamond'], ['square', 'pentagon']],
-  [['circle', 'square'], ['diamond', 'pentagon']],
-  [['circle', 'pentagon'], ['square', 'diamond']],
+  [['hourglass', 'square'], ['heart', 'pentagon']],
+  [['hourglass', 'heart'], ['pentagon', 'square']],
+  [['hourglass', 'pentagon'], ['heart', 'square']],
 ];
 var plainShapePairings = [
-  [['heart', 'moon'], ['hourglass', 'teardrop']],
-  [['hourglass', 'moon'], ['teardrop', 'heart']],
-  [['hourglass', 'heart'], ['moon', 'teardrop']],
+  [['moon', 'circle'], ['teardrop', 'diamond']],
+  [['moon', 'teardrop'], ['diamond', 'circle']],
+  [['moon', 'diamond'], ['teardrop', 'circle']],
 ];
 
 // Dedicated shapes for the conjunctive block, NOT used in plain or feature.
@@ -555,8 +564,8 @@ if (pairingIdx < 0) pairingIdx += 3;
 var blockOrder = taskOrders[blockOrderIdx];
 
 // Per-block stim set. Each condition uses its own dedicated shape set:
-//   plain -> plainShapes (hourglass/moon/teardrop/heart)
-//   feature -> shapes (circle/square/diamond/pentagon)
+//   plain -> plainShapes (moon/teardrop/diamond/circle)
+//   feature -> shapes (hourglass/heart/pentagon/square)
 //   conjunctive -> conjShapes (triangle/cross)
 // so no shape ever carries a learned shape -> key code across conditions.
 function shapesForBlock(blockCondition) {
@@ -723,7 +732,7 @@ var pathSource = (function () {
 var images = [pathSource + 'stopSignal.png'];
 
 // Per-block label for a (shape,color) stim.
-//   plain:       just the shape name ("circle" / "square")
+//   plain:       just the shape name ("moon" / "circle")
 //   feature:     shape name (color shown but ignored by the rule)
 //   conjunctive: "pink triangle", "blue cross", etc.
 var labelFor = function (shape, color) {
@@ -764,7 +773,7 @@ function buildPromptsForBlock(blockCondition) {
       bucket.stims.push(labelFor(blockShapes[s], stimColors[c]));
     }
   }
-  // Deduplicate the feature/plain case ("circle" appears twice etc).
+  // Deduplicate the feature/plain case ("hourglass" appears twice etc).
   for (var b = 0; b < byKey.length; b++) {
     byKey[b].stims = Array.from(new Set(byKey[b].stims));
   }

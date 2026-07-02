@@ -14,6 +14,14 @@ Every block uses its **own dedicated shape set** — no shape ever appears in mo
 than one condition, so there is no shared shape→key code to carry across blocks
 (see [Block conditions](#block-conditions)).
 
+Shapes were assigned to blocks by **balancing rated weirdness**: n = 9 raters
+(July 2026) ranked the 10 shapes most→least weird via [`rank_shapes.html`](rank_shapes.html)
+(drag-and-drop; Kendall's W = .85, χ²(9) = 68.5, p = 2.9 × 10⁻¹¹; bootstrap 95%
+CI on the plain−feature mean-rank difference [−0.61, +0.58]). Each block gets
+two weird + two ordinary shapes with near-equal mean rank (plain 5.39, feature
+5.44, conjunctive 5.83; grand mean 5.5). Diamond and square are kept in
+different blocks — a diamond is a rotated square, too confusable within-block.
+
 ### Plain block — 4 shapes (neutral color)
 
 The plain shapes are drawn procedurally as inline SVG (`shapeInnerSvg` in
@@ -23,19 +31,19 @@ All appear in the neutral color (`#e8e8e8`) — the plain block has no color.
 
 <table>
 <tr>
-<td align="center"><strong>hourglass</strong></td>
 <td align="center"><strong>moon</strong></td>
 <td align="center"><strong>teardrop</strong></td>
-<td align="center"><strong>heart</strong></td>
+<td align="center"><strong>diamond</strong></td>
+<td align="center"><strong>circle</strong></td>
 </tr>
 <tr>
-<td align="center"><img src="feature_stop_task/images/hourglass_neutral.png" width="80"></td>
 <td align="center"><img src="feature_stop_task/images/moon_neutral.png" width="80"></td>
 <td align="center"><img src="feature_stop_task/images/teardrop_neutral.png" width="80"></td>
-<td align="center"><img src="feature_stop_task/images/heart_neutral.png" width="80"></td>
+<td align="center"><img src="feature_stop_task/images/diamond_neutral.png" width="80"></td>
+<td align="center"><img src="feature_stop_task/images/circle_neutral.png" width="80"></td>
 </tr>
 <tr>
-<td align="center" colspan="4"><em>hourglass = two triangles · moon = waxing crescent · teardrop = point-up · heart = two-lobe</em></td>
+<td align="center" colspan="4"><em>moon = waxing crescent · teardrop = point-up · diamond = rotated square · circle</em></td>
 </tr>
 </table>
 
@@ -43,22 +51,22 @@ All appear in the neutral color (`#e8e8e8`) — the plain block has no color.
 
 <table>
 <tr>
-<td align="center"><strong>circle</strong></td>
-<td align="center"><strong>square</strong></td>
-<td align="center"><strong>diamond</strong></td>
+<td align="center"><strong>hourglass</strong></td>
+<td align="center"><strong>heart</strong></td>
 <td align="center"><strong>pentagon</strong></td>
+<td align="center"><strong>square</strong></td>
 </tr>
 <tr>
-<td align="center"><img src="feature_stop_task/images/circle_violet.png" width="60"></td>
-<td align="center"><img src="feature_stop_task/images/square_violet.png" width="60"></td>
-<td align="center"><img src="feature_stop_task/images/diamond_violet.png" width="60"></td>
+<td align="center"><img src="feature_stop_task/images/hourglass_violet.png" width="60"></td>
+<td align="center"><img src="feature_stop_task/images/heart_violet.png" width="60"></td>
 <td align="center"><img src="feature_stop_task/images/pentagon_violet.png" width="60"></td>
+<td align="center"><img src="feature_stop_task/images/square_violet.png" width="60"></td>
 </tr>
 <tr>
-<td align="center"><img src="feature_stop_task/images/circle_orange.png" width="60"></td>
-<td align="center"><img src="feature_stop_task/images/square_orange.png" width="60"></td>
-<td align="center"><img src="feature_stop_task/images/diamond_orange.png" width="60"></td>
+<td align="center"><img src="feature_stop_task/images/hourglass_orange.png" width="60"></td>
+<td align="center"><img src="feature_stop_task/images/heart_orange.png" width="60"></td>
 <td align="center"><img src="feature_stop_task/images/pentagon_orange.png" width="60"></td>
+<td align="center"><img src="feature_stop_task/images/square_orange.png" width="60"></td>
 </tr>
 <tr>
 <td align="center" colspan="4"><em>violet / orange (feature block) — color is present but task-irrelevant</em></td>
@@ -119,9 +127,9 @@ block has a **distinct shape set**, so the three conditions are fully
 independent — no shape (and therefore no shape→key code) is ever shared across
 blocks:
 
-- **plain** — hourglass, moon, teardrop, heart in neutral color; respond based
+- **plain** — moon, teardrop, diamond, circle in neutral color; respond based
   on shape. Equivalent to the original simple stop task.
-- **feature** — circle, square, diamond, pentagon in violet or orange; color is
+- **feature** — hourglass, heart, pentagon, square in violet or orange; color is
   task-irrelevant; respond based on shape (color is a perceptual distractor).
 - **conjunctive** — triangle and cross in pink or blue. Both shape AND
   color determine the correct key (XOR-like mapping). Because both the shapes
@@ -139,22 +147,24 @@ In each of the plain and feature blocks the 4 shapes are split into two pairs,
 each pair mapped to one response key (comma `,` or period `.`). The plain and
 feature blocks now use **different shape sets and independent pairings**.
 
-**Pairing 1 is the primary (design-intended) grouping** — each less-common shape
-is paired with a more common one — and is the grouping used at `group_index = 1`:
+**Pairing 1 is the primary (design-intended) grouping** — each pair combines one
+weird and one ordinary shape (per the weirdness norming above), so the two
+response keys are weirdness-balanced too — and is the grouping used at
+`group_index = 1`:
 
 | Block   | `,` (comma) group   | `.` (period) group  |
 | ------- | ------------------- | ------------------- |
-| plain   | heart, moon         | hourglass, teardrop |
-| feature | circle, diamond     | square, pentagon    |
+| plain   | moon, circle        | teardrop, diamond   |
+| feature | hourglass, square   | heart, pentagon     |
 
 The two remaining disjoint partitions of each set are retained only to fill the
 `pairingIdx` counterbalancing dimension:
 
 | Pairing | Plain `,` / `.`                        | Feature `,` / `.`                    |
 | ------- | -------------------------------------- | ------------------------------------ |
-| 1       | heart, moon / hourglass, teardrop      | circle, diamond / square, pentagon   |
-| 2       | hourglass, moon / teardrop, heart      | circle, square / diamond, pentagon   |
-| 3       | hourglass, heart / moon, teardrop      | circle, pentagon / square, diamond   |
+| 1       | moon, circle / teardrop, diamond       | hourglass, square / heart, pentagon  |
+| 2       | moon, teardrop / diamond, circle       | hourglass, heart / pentagon, square  |
+| 3       | moon, diamond / teardrop, circle       | hourglass, pentagon / heart, square  |
 
 The pairing index is fixed for a participant's whole session, but plain and
 feature are otherwise independent conditions with their own shapes. (The comma
@@ -163,7 +173,7 @@ vs. period assignment shown above is for `keyConfigIdx = 0`; it flips for
 
 > **Note:** because `pairingIdx` still counterbalances across all three
 > partitions, only participants with `pairingIdx = 0` (`group_index` 1–12) get
-> the intended "uncommon + common" Pairing 1. If every participant should get
+> the intended weirdness-balanced Pairing 1. If every participant should get
 > Pairing 1, collapse to a single fixed pairing and drop the `pairingIdx`
 > dimension (36 → 12 cells).
 
@@ -197,8 +207,8 @@ shape set** (plain and feature are partitioned independently; see
 
 Saved per trial (counterbalancing): `group_index`, `block_order_idx`,
 `key_config_idx`, `pairing_idx`, `feature_shape_pairing`
-(e.g. `"circle+diamond_vs_square+pentagon"`), `plain_shape_pairing`
-(e.g. `"heart+moon_vs_hourglass+teardrop"`), `shape_pairing` (backward-compat
+(e.g. `"hourglass+square_vs_heart+pentagon"`), `plain_shape_pairing`
+(e.g. `"moon+circle_vs_teardrop+diamond"`), `shape_pairing` (backward-compat
 alias of `feature_shape_pairing`), `conj_shapes` (`"triangle+cross"`),
 `conj_colors` (`"pink+blue"`), `block_order`. Because plain and feature use
 independent pairings, **both** are recorded so each block's grouping is
@@ -270,6 +280,7 @@ experiments 1–3).
 ```
 feature_stop_task/   # experiment dir: config.json + experiment.js + style.css + images/
 index.html           # local-test runner that loads from feature_stop_task/
+rank_shapes.html     # standalone drag-and-drop shape-weirdness ranking page (norming)
 README.md
 ```
 
