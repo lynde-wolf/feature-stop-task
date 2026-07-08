@@ -14,13 +14,9 @@ Every block uses its **own dedicated shape set** — no shape ever appears in mo
 than one condition, so there is no shared shape→key code to carry across blocks
 (see [Block conditions](#block-conditions)).
 
-Shapes were assigned to blocks by **balancing rated weirdness**: n = 9 raters
-(July 2026) ranked the 10 shapes most→least weird via [`rank_shapes.html`](rank_shapes.html)
-(drag-and-drop; Kendall's W = .85, χ²(9) = 68.5, p = 2.9 × 10⁻¹¹; bootstrap 95%
-CI on the plain−feature mean-rank difference [−0.61, +0.58]). Each block gets
-two weird + two ordinary shapes with near-equal mean rank (plain 5.39, feature
-5.44, conjunctive 5.83; grand mean 5.5). Diamond and square are kept in
-different blocks — a diamond is a rotated square, too confusable within-block.
+Shapes were assigned to blocks by balancing rated weirdness — see
+[Shape-weirdness norming](#shape-weirdness-norming) at the bottom for the
+norming details.
 
 ### Plain block — 4 shapes (neutral color)
 
@@ -148,7 +144,8 @@ each pair mapped to one response key (comma `,` or period `.`). The plain and
 feature blocks now use **different shape sets and independent pairings**.
 
 **Pairing 1 is the primary (design-intended) grouping** — each pair combines one
-weird and one ordinary shape (per the weirdness norming above), so the two
+weird and one ordinary shape (per the
+[shape-weirdness norming](#shape-weirdness-norming)), so the two
 response keys are weirdness-balanced too — and is the grouping used at
 `group_index = 1`:
 
@@ -354,3 +351,15 @@ phases, after the participant has learned the shape→key binding — not up fro
 > stop on trials with the star.
 
 *→ Phase 2: practice with stop signals runs here, then the test.*
+
+---
+
+## Shape-weirdness norming
+
+Shapes were assigned to blocks by **balancing rated weirdness**: n = 9 raters
+(July 2026) ranked the 10 shapes most→least weird via [`rank_shapes.html`](rank_shapes.html)
+(drag-and-drop; Kendall's W = .85, χ²(9) = 68.5, p = 2.9 × 10⁻¹¹; bootstrap 95%
+CI on the plain−feature mean-rank difference [−0.61, +0.58]). Each block gets
+two weird + two ordinary shapes with near-equal mean rank (plain 5.39, feature
+5.44, conjunctive 5.83; grand mean 5.5). Diamond and square are kept in
+different blocks — a diamond is a rotated square, too confusable within-block.

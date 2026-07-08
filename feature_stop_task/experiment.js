@@ -292,11 +292,11 @@ var shapeInnerSvg = function (shape, hex) {
   }
   if (shape === 'moon') {
     // Waxing crescent: left half of a circle (r=60) closed by a shallower
-    // inner arc (rx=40, ry=60) so the two arcs enclose a crescent that opens
+    // inner arc (rx=20, ry=60) so the two arcs enclose a crescent that opens
     // to the right. The inner ry must equal the vertical half-span (60) or SVG
     // rescales the radius and collapses the crescent to nothing.
     return (
-      '<path d="M80,20 A60,60 0 1 0 80,140 A40,60 0 1 1 80,20 Z" fill="' +
+      '<path d="M80,20 A60,60 0 1 0 80,140 A20,60 0 1 1 80,20 Z" fill="' +
       hex +
       '"/>'
     );
